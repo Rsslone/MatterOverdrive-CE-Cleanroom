@@ -66,7 +66,6 @@ public class ConfigurationHandler {
 	public static final String KEY_WEAPON_OMNITOOL_ENERGY_VALUE = "Omni Tool energy per shot";
 	
 	public static final String CATEGORY_WORLD_GEN = "world gen";
-	public static final String CATEGORY_MATTER_NETWORK = "matter network";
 	public static final String CATEGORY_MACHINES = "machine options";
 	public static final String CATEGORY_MATTER_ITEMS = CATEGORY_MATTER + ".add matter";
 	public static final String CATEGORY_WORLD_SPAWN_ORES = "spawn ores";
@@ -77,6 +76,7 @@ public class ConfigurationHandler {
 	public static final String CATEGORY_ANDROID_HUD = CATEGORY_CLIENT + "." + "android_hud";
 	public static final String CATEGORY_SERVER = "server";
 	public static final String CATEGORY_STARMAP = "starmap";
+	public static final String KEY_STARMAP_ENABLED = "enabled";
 	public static final String CATEGORY_ENCHANTMENTS = "enchantments";
 	public static final String CATEGORY_ENTITIES = "entities";
 	public static final String CATEGORY_ANDROID_PLAYER = CATEGORY_ENTITIES + "." + "android_player";
@@ -85,7 +85,6 @@ public class ConfigurationHandler {
 	public static final String KEY_AUTOMATIC_RECIPE_CALCULATION = "automatic matter calculation from recipe";
 	public static final String KEY_AUTOMATIC_FURNACE_CALCULATION = "automatic matter calculation from furnace";
 	public static final String KEY_AUTOMATIC_INSCRIBER_CALCULATION = "automatic matter calculation from inscriber";
-	public static final String KEY_MAX_BROADCASTS = "max broadcasts per tick";
 	public static final String KEY_MBLACKLIST = "blacklist";
 	public static final String KEY_BLACKLIST_MODS = "mod_blacklist";
 	public static final String KEY_VERSION_CHECK = "version_check";
@@ -110,6 +109,7 @@ public class ConfigurationHandler {
 
 	public final Configuration config;
 	private final Set<IConfigSubscriber> subscribers;
+	public boolean starmapEnabled;
 
 	public ConfigurationHandler(File configDir) {
 		this.configDir = configDir;
@@ -152,15 +152,19 @@ public class ConfigurationHandler {
 		category = config.getCategory(CATEGORY_MACHINES);
 		category.setComment("Machine Options.");
 		updateCategoryLang(category);
-		category = config.getCategory(CATEGORY_MATTER_NETWORK);
-		category.setComment("Matter Network Options.");
-		updateCategoryLang(category);
 		category = config.getCategory(CATEGORY_WORLD_GEN);
 		category.setComment("World Generation options.");
 		updateCategoryLang(category);
 		category = config.getCategory(CATEGORY_ABILITIES);
 		category.setComment("Android Player Abilities");
 		updateCategoryLang(category);
+		category = config.getCategory(CATEGORY_STARMAP);
+		category.setComment("Starmap feature options.");
+		updateCategoryLang(category);
+		starmapEnabled = config.getBoolean(KEY_STARMAP_ENABLED, CATEGORY_STARMAP, false,
+				"Enable the Starmap feature. WARNING: This feature is incomplete and under active development. "
+						+ "Leave disabled unless enabling for development purposes.");
+
 		category = config.getCategory(CATEGORY_COMPATIBILITY);
 		category.setComment("Option for other mods");
 		updateCategoryLang(category);
@@ -283,6 +287,7 @@ public class ConfigurationHandler {
 	@SubscribeEvent
 	public void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent eventArgs) {
 		if (eventArgs.getModID().equals(Reference.MOD_ID)) {
+			starmapEnabled = config.getBoolean(KEY_STARMAP_ENABLED, CATEGORY_STARMAP, false, "");
 			config.save();
 		}
 
@@ -295,7 +300,6 @@ public class ConfigurationHandler {
 		list.add(new ConfigElement(getCategory(ConfigurationHandler.CATEGORY_CLIENT)));
 		list.add(new ConfigElement(getCategory(ConfigurationHandler.CATEGORY_SERVER)));
 		list.add(new ConfigElement(getCategory(ConfigurationHandler.CATEGORY_WORLD_GEN)));
-		list.add(new ConfigElement(getCategory(ConfigurationHandler.CATEGORY_MATTER_NETWORK)));
 		list.add(new ConfigElement(getCategory(ConfigurationHandler.CATEGORY_MACHINES)));
 		list.add(new ConfigElement(getCategory(ConfigurationHandler.CATEGORY_MATTER)));
 		list.add(new ConfigElement(getCategory(ConfigurationHandler.CATEGORY_WEAPON)));

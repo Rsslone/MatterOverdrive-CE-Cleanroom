@@ -3,19 +3,18 @@ package matteroverdrive.world.buildings;
 import matteroverdrive.MatterOverdrive;
 import matteroverdrive.Reference;
 import matteroverdrive.api.quest.QuestStack;
-import matteroverdrive.blocks.BlockTritaniumCrate;
+import matteroverdrive.blocks.BlockNewTritaniumCrate;
 import matteroverdrive.blocks.BlockDecorative;
 import matteroverdrive.data.quest.logic.QuestLogicBlockInteract;
 import matteroverdrive.blocks.includes.MOBlock;
 import matteroverdrive.tile.TileEntityHoloSign;
-import matteroverdrive.tile.TileEntityTritaniumCrate;
+import matteroverdrive.tile.TileEntityNewTritaniumCrate;
 import matteroverdrive.world.MOLootTableManager;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
@@ -50,7 +49,7 @@ public class MOWorldGenCargoShip extends MOWorldGenBuilding<MOWorldGenCargoShip.
 				MatterOverdrive.BLOCKS.tritaniumOre));
 		addMapping(0xeff73d, MatterOverdrive.BLOCKS.fusionReactorIO);
 		addMapping(0x1b2ff7, MatterOverdrive.BLOCKS.network_pipe);
-		addMapping(0x1f2312, MatterOverdrive.BLOCKS.tritaniumCrateColored[EnumDyeColor.LIME.getMetadata()]);
+		addMapping(0x1f2312, MatterOverdrive.BLOCKS.new_tritanium_crate_base);
 		addMapping(0xab4824, Blocks.OAK_FENCE);
 		addMapping(0x68d738, Blocks.CARPET);
 		addMapping(0xbdea8f, Blocks.LADDER);
@@ -61,16 +60,16 @@ public class MOWorldGenCargoShip extends MOWorldGenBuilding<MOWorldGenCargoShip.
 		addMapping(0x4d8dd3, MatterOverdrive.BLOCKS.pattern_monitor);
 		addMapping(0x6b3534, Blocks.BED);
 		addMapping(0xff00ff, Blocks.AIR);
-		addMapping(0x69960c, MatterOverdrive.BLOCKS.tritaniumCrateColored[EnumDyeColor.RED.getMetadata()]);
+		addMapping(0x69960c, MatterOverdrive.BLOCKS.new_tritanium_crate_base);
 	}
 
 	@Override
 	protected void onGeneration(Random random, World world, BlockPos pos, Worker worker) {
 		if (worker.contractDestination != null) {
 			TileEntity tileEntity = world.getTileEntity(worker.contractDestination);
-			if (tileEntity instanceof TileEntityTritaniumCrate) {
+			if (tileEntity instanceof TileEntityNewTritaniumCrate) {
 				ItemStack contract = worker.contractQuest.getContract();
-				((TileEntityTritaniumCrate) tileEntity).getInventory().addItem(contract);
+				((TileEntityNewTritaniumCrate) tileEntity).getInventory().addItem(contract);
 			}
 		}
 	}
@@ -119,25 +118,32 @@ public class MOWorldGenCargoShip extends MOWorldGenBuilding<MOWorldGenCargoShip.
 					((TileEntityHoloSign) tileEntity).setText(holoTexts[random.nextInt(holoTexts.length)]);
 				}
 			}
-		} else if (blockState.getBlock() instanceof BlockTritaniumCrate) {
+		} else if (blockState.getBlock() instanceof BlockNewTritaniumCrate) {
+			IBlockState crateState = blockState;
+			if (colorsMatch(color, 0x1f2312)) {
+				crateState = crateState.withProperty(BlockNewTritaniumCrate.COLOR, BlockNewTritaniumCrate.Color.LIME);
+			} else if (colorsMatch(color, 0x69960c)) {
+				crateState = crateState.withProperty(BlockNewTritaniumCrate.COLOR, BlockNewTritaniumCrate.Color.RED);
+			}
+			world.setBlockState(pos, crateState, 3);
 			TileEntity tileEntity = world.getTileEntity(pos);
 			if (tileEntity instanceof IInventory) {
-				TileEntityTritaniumCrate chest = (TileEntityTritaniumCrate) tileEntity;
+				TileEntityNewTritaniumCrate chest = (TileEntityNewTritaniumCrate) tileEntity;
 				LootContext.Builder lootcontext$builder = new LootContext.Builder((WorldServer) world);
 				LootTable loottable = world.getLootTableManager()
 						.getLootTableFromLocation(MOLootTableManager.MO_CRASHED_SHIP);
 				loottable.fillInventory(chest, world.rand, lootcontext$builder.build());
 				if (colorsMatch(color, 0x69960c)) {
 					TileEntity tritaniumCrate = world.getTileEntity(pos);
-					if (tritaniumCrate instanceof TileEntityTritaniumCrate) {
+					if (tritaniumCrate instanceof TileEntityNewTritaniumCrate) {
 						worker.setQuestPos(pos);
 						ItemStack itemStack = new ItemStack(MatterOverdrive.ITEMS.isolinear_circuit)
 								.setStackDisplayName("Trade Route Agreement");
-						((TileEntityTritaniumCrate) tritaniumCrate).getInventory().addItem(itemStack);
+						((TileEntityNewTritaniumCrate) tritaniumCrate).getInventory().addItem(itemStack);
 					}
 				} else if (colorsMatch(color, 0x1f2312)) {
 					TileEntity tritaniumCrate = world.getTileEntity(pos);
-					if (tritaniumCrate instanceof TileEntityTritaniumCrate) {
+					if (tritaniumCrate instanceof TileEntityNewTritaniumCrate) {
 						if (!worker.questAdded) {
 							worker.markQuestAdded();
 							worker.contractDestination = pos;

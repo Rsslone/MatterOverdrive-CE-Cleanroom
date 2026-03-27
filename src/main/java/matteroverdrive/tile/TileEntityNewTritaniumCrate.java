@@ -7,7 +7,6 @@ import javax.annotation.Nonnull;
 import matteroverdrive.data.TileEntityInventory;
 import matteroverdrive.data.inventory.CrateSlot;
 import matteroverdrive.machines.MachineNBTCategory;
-import matteroverdrive.util.MOLog;
 import matteroverdrive.util.MOStringHelper;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -66,8 +65,6 @@ public class TileEntityNewTritaniumCrate extends MOTileEntity implements IInvent
 	public void readCustomNBT(NBTTagCompound nbt, EnumSet<MachineNBTCategory> categories) {
 		if (categories.contains(MachineNBTCategory.COLOR)) {
 			color = nbt.getInteger("Color");
-
-			MOLog.info("Setting custom color to: " + color);
 		}
 
 		if (categories.contains(MachineNBTCategory.INVENTORY)) {
@@ -267,5 +264,10 @@ public class TileEntityNewTritaniumCrate extends MOTileEntity implements IInvent
 	public void update() {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public boolean shouldRefresh(World world, BlockPos pos, IBlockState oldState, IBlockState newState) {
+		return oldState.getBlock() != newState.getBlock();
 	}
 }

@@ -80,6 +80,7 @@ public class ConfigurationHandler {
 	public static final String CATEGORY_ENCHANTMENTS = "enchantments";
 	public static final String CATEGORY_ENTITIES = "entities";
 	public static final String CATEGORY_ANDROID_PLAYER = CATEGORY_ENTITIES + "." + "android_player";
+	public static final String CATEGORY_GENERAL = "_general";
 	public static final String CATEGORY_COMPATIBILITY = "compatibility";
 	public static final String CATEGORY_DEBUG = "debug";
 	public static final String KEY_AUTOMATIC_RECIPE_CALCULATION = "automatic matter calculation from recipe";
@@ -110,6 +111,8 @@ public class ConfigurationHandler {
 	public final Configuration config;
 	private final Set<IConfigSubscriber> subscribers;
 	public boolean starmapEnabled;
+	public boolean pylonEnabled;
+	public boolean showFilledItems;
 
 	public ConfigurationHandler(File configDir) {
 		this.configDir = configDir;
@@ -152,6 +155,9 @@ public class ConfigurationHandler {
 		category = config.getCategory(CATEGORY_MACHINES);
 		category.setComment("Machine Options.");
 		updateCategoryLang(category);
+		pylonEnabled = config.getBoolean("dimensional_pylon_enabled", CATEGORY_MACHINES, false,
+				"Enable the Dimensional Pylon feature. WARNING: This feature is incomplete and under active development. "
+						+ "Leave disabled unless enabling for development purposes.");
 		category = config.getCategory(CATEGORY_WORLD_GEN);
 		category.setComment("World Generation options.");
 		updateCategoryLang(category);
@@ -168,6 +174,13 @@ public class ConfigurationHandler {
 		category = config.getCategory(CATEGORY_COMPATIBILITY);
 		category.setComment("Option for other mods");
 		updateCategoryLang(category);
+
+		category = config.getCategory(CATEGORY_GENERAL);
+		category.setComment("General mod settings");
+		updateCategoryLang(category);
+		showFilledItems = config.getBoolean("show_filled_items", CATEGORY_GENERAL, false,
+			"When false, filled variants of energy/matter items (batteries, containers) "
+				+ "are hidden from creative inventory and JEI. Empty variants still appear.");
 
 		config.get(CATEGORY_WORLD_GEN, CATEGORY_WORLD_SPAWN_ORES, true,
 				"Should ores such as dilithium and tritanium ore spawn in the world. This applies for all ores !")
@@ -288,6 +301,8 @@ public class ConfigurationHandler {
 	public void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent eventArgs) {
 		if (eventArgs.getModID().equals(Reference.MOD_ID)) {
 			starmapEnabled = config.getBoolean(KEY_STARMAP_ENABLED, CATEGORY_STARMAP, false, "");
+			pylonEnabled = config.getBoolean("dimensional_pylon_enabled", CATEGORY_MACHINES, false, "");
+			showFilledItems = config.getBoolean("show_filled_items", CATEGORY_GENERAL, false, "");
 			config.save();
 		}
 

@@ -100,7 +100,6 @@ item.matteroverdrive.portable_decomposer.details=Разлагает подобр
 item.record.matteroverdrive.transformation.desc=BoxCat Games - Trace Route
 item.matteroverdrive.trilithium_crystal.name=Чистый Трилитиевый кристалл
 item.matteroverdrive.artifact.name=Неизвестный артефакт
-item.matteroverdrive.quantum_fold_manipulator.name=Квантовый складной манипулятор
 item.matteroverdrive.matter.name=Материя
 
 ##  Улучшения/Upgrades  ##
@@ -263,28 +262,9 @@ machine.tooltip.matter=Материя
 machine.tooltip.energy=Заряд
 
 ## Тритановый ящик/Tritanium Crate ##
-tile.tritanium_crate.name=Тритановый ящик
 
-tile.tritanium_crate_white.name=Белый тритановый ящик
-tile.tritanium_crate_orange.name=Оранжевый тритановый ящик
-tile.tritanium_crate_magenta.name=Пурпурный тритановый ящик
-tile.tritanium_crate_light_blue.name=Голубой тритановый ящик
-tile.tritanium_crate_yellow.name=Жёлтый тритановый ящик
-tile.tritanium_crate_lime.name=Лаймовый тритановый ящик
-tile.tritanium_crate_pink.name=Розовый тритановый ящик
-tile.tritanium_crate_gray.name=Серый тритановый ящик
-tile.tritanium_crate_silver.name=Светло-серый тритановый ящик
-tile.tritanium_crate_cyan.name=Бирюзовый тритановый ящик
-tile.tritanium_crate_purple.name=Фиолетовый тритановый ящик
-tile.tritanium_crate_blue.name=Синий тритановый ящик
-tile.tritanium_crate_brown.name=Коричневый тритановый ящик
-tile.tritanium_crate_green.name=Зелёный тритановый ящик
-tile.tritanium_crate_red.name=Красный тритановый ящик
-tile.tritanium_crate_black.name=Чёрный тритановый ящик
 
-tile.new_tritanium_crate.name=Новый тритановый ящик
-tile.new_tritanium_crate_white.name=Белый новый тритановый ящик
-tile.new_tritanium_crate_purple.name=Фиолетовый новый тритановый ящик
+tile.new_tritanium_crate.name=Тритановый ящик
 
 ## Существа/Entities ##
 
@@ -739,8 +719,7 @@ color.orange=Оранжевая
 color.white=Белая
 
 material.tritanium=Тританиум
-container.tritanium_crate=Тритановый ящик
-container.new_tritanium_crate=Новый тритановый ящик
+container.new_tritanium_crate=Тритановый ящик
 rarity.legendary=Легендарный
 
 mo.jei.time=%d секунд

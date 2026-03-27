@@ -4,9 +4,7 @@ import matteroverdrive.api.wrench.IDismantleable;
 import matteroverdrive.blocks.includes.MOBlockMachine;
 import matteroverdrive.init.MatterOverdriveSounds;
 import matteroverdrive.tile.TileEntityNewTritaniumCrate;
-import matteroverdrive.tile.TileEntityTritaniumCrate;
 import matteroverdrive.util.MOBlockHelper;
-import matteroverdrive.util.MOLog;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.PropertyEnum;
 import net.minecraft.block.state.BlockStateContainer;
@@ -22,7 +20,6 @@ import net.minecraft.util.IStringSerializable;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
@@ -59,6 +56,14 @@ public class BlockNewTritaniumCrate extends MOBlockMachine<TileEntityNewTritaniu
 	@Deprecated
 	public boolean isFullCube(IBlockState state) {
 		return false;
+	}
+
+	@Nonnull
+	@Override
+	@Deprecated
+	public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess source, BlockPos pos) {
+		EnumFacing dir = state.getValue(PROPERTY_DIRECTION);
+		return dir == EnumFacing.NORTH || dir == EnumFacing.SOUTH ? BOX_NORTH_SOUTH : BOX_EAST_WEST;
 	}
 
 	@Override
@@ -131,21 +136,17 @@ public class BlockNewTritaniumCrate extends MOBlockMachine<TileEntityNewTritaniu
 				}
 
 				Color dyeColor = Color.values()[curDyeColor];
+				IBlockState coloredState = state.withProperty(COLOR, dyeColor);
+				worldIn.setBlockState(pos, coloredState, 3);
 
-				playerIn.sendMessage(new TextComponentString("Using dye color: " + dyeColor));
-
-				// Even though it seems redundant, both of these sections are needed.
-				// Client/Server perhaps?
-
-				IBlockState bsc = worldIn.getBlockState(pos);
-
-				worldIn.setBlockState(pos, bsc.withProperty(COLOR, dyeColor));
-
-				if (worldIn.getTileEntity(pos) instanceof TileEntityNewTritaniumCrate) {
-					TileEntityNewTritaniumCrate tentc = (TileEntityNewTritaniumCrate) worldIn.getTileEntity(pos);
-
-					if (tentc != null) {
+				TileEntity tileEntity = worldIn.getTileEntity(pos);
+				if (tileEntity instanceof TileEntityNewTritaniumCrate) {
+					TileEntityNewTritaniumCrate tentc = (TileEntityNewTritaniumCrate) tileEntity;
+					if (tentc.getColor() != dyeColor.getMetadata()) {
 						tentc.setColor(dyeColor.getMetadata());
+						tentc.markDirty();
+						worldIn.markBlockRangeForRenderUpdate(pos, pos);
+						worldIn.notifyBlockUpdate(pos, coloredState, coloredState, 3);
 					}
 				}
 
@@ -191,10 +192,8 @@ public class BlockNewTritaniumCrate extends MOBlockMachine<TileEntityNewTritaniu
 	@Override
 	public ArrayList<ItemStack> dismantleBlock(EntityPlayer player, World world, BlockPos pos, boolean returnDrops) {
 		TileEntity tile = world.getTileEntity(pos);
-//TODO Remove?
-		// ItemStack s = new ItemStack(this);
 
-		if (tile instanceof TileEntityTritaniumCrate) {
+		if (tile instanceof TileEntityNewTritaniumCrate) {
 			IBlockState state = world.getBlockState(pos);
 
 			state.getBlock().harvestBlock(world, player, pos, state, world.getTileEntity(pos), ItemStack.EMPTY);
@@ -212,8 +211,6 @@ public class BlockNewTritaniumCrate extends MOBlockMachine<TileEntityNewTritaniu
 			TileEntityNewTritaniumCrate tentc = (TileEntityNewTritaniumCrate) worldIn.getTileEntity(pos);
 
 			if (tentc != null) {
-				MOLog.info("Color being shown is: " + Color.values()[tentc.getColor()]);
-
 				return super.getActualState(state, worldIn, pos).withProperty(COLOR, Color.values()[tentc.getColor()]);
 			}
 		}

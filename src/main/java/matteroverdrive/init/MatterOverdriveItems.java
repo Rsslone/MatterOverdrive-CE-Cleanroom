@@ -2,6 +2,7 @@
 package matteroverdrive.init;
 
 import com.google.common.base.Preconditions;
+import matteroverdrive.MatterOverdrive;
 import matteroverdrive.items.*;
 import matteroverdrive.items.android.RougeAndroidParts;
 import matteroverdrive.items.android.TritaniumSpine;
@@ -31,13 +32,11 @@ import net.minecraft.item.ItemArmor;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.util.EnumHelper;
 import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Mod.EventBusSubscriber
 public class MatterOverdriveItems {
 	public final static Item.ToolMaterial TOOL_MATERIAL_TRITANIUM = EnumHelper.addToolMaterial("TRITANIUM", 2, 3122, 6f,
 			2f, 14);
@@ -136,7 +135,6 @@ public class MatterOverdriveItems {
 	public ItemRecordTransformation recordTransformation;
 	public MOBaseItem trilithiumCrystal;
 	public MOBaseItem artifact;
-	public MOBaseItem quantumFoldManipulator;
 
 	private int registeredCount = 0;
 
@@ -198,17 +196,18 @@ public class MatterOverdriveItems {
 		weaponReceiver = register(new MOBaseItem("weapon_receiver"));
 		plasmaCore = register(new MOBaseItem("plasma_core"));
 
-//		Ships
-		scoutShip =  register(new ItemScoutShip("scout_ship"));
-		colonizerShip =  register(new ItemColonizerShip("ship_colonizer"));
+//		Ships & Buildings (only registered when starmap feature is enabled)
+		if (MatterOverdrive.CONFIG_HANDLER.starmapEnabled) {
+			scoutShip =  register(new ItemScoutShip("scout_ship"));
+			colonizerShip =  register(new ItemColonizerShip("ship_colonizer"));
 
-//		Buildings
-		shipFactory =  register(new ShipFactory("ship_factory"));
-		buildingBase =  register(new ItemBuildingBase("building_base"));
-		buildingMatterExtractor =  register(new ItemBuildingMatterExtractor("building_matter_extractor"));
-		buildingResidential =  register(new ItemBuildingResidential("building_residential"));
-		buildingShipHangar =  register(new ItemBuildingShipHangar("building_ship_hangar"));
-		buildingPowerGenerator =  register(new ItemBuildingPowerGenerator("building_power_generator"));
+			shipFactory =  register(new ShipFactory("ship_factory"));
+			buildingBase =  register(new ItemBuildingBase("building_base"));
+			buildingMatterExtractor =  register(new ItemBuildingMatterExtractor("building_matter_extractor"));
+			buildingResidential =  register(new ItemBuildingResidential("building_residential"));
+			buildingShipHangar =  register(new ItemBuildingShipHangar("building_ship_hangar"));
+			buildingPowerGenerator =  register(new ItemBuildingPowerGenerator("building_power_generator"));
+		}
         
 //		Weapons
 		phaser = register(new Phaser("phaser"));
@@ -256,7 +255,6 @@ public class MatterOverdriveItems {
 		recordTransformation = register(new ItemRecordTransformation());
 		artifact = register(new MOBaseItem("artifact"));
 		trilithiumCrystal = register(new MOBaseItem("trilithium_crystal"));
-		quantumFoldManipulator = register(new MOBaseItem("quantum_fold_manipulator"));
 		Preconditions.checkNotNull(TOOL_MATERIAL_TRITANIUM).setRepairItem(new ItemStack(tritanium_ingot));
 		Preconditions.checkNotNull(ARMOR_MATERIAL_TRITANIUM).setRepairItem(new ItemStack(tritanium_ingot));
 		MOLog.info("Finished registering %d items", registeredCount);

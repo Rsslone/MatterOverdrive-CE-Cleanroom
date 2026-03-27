@@ -412,10 +412,8 @@ public class TileEntityMachineFusionReactorController extends MOTileEntityMachin
 		if (!(state.getBlock() instanceof BlockFusionReactorController))
 			return Block.FULL_BLOCK_AABB.offset(getPos());
 		EnumFacing backSide = state.getValue(MOBlock.PROPERTY_DIRECTION).getOpposite();
-		return new AxisAlignedBB(getPos().getX(), getPos().getY(), getPos().getZ(),
-				getPos().getX() + backSide.getDirectionVec().getX() * 10,
-				getPos().getY() + backSide.getDirectionVec().getY() * 10,
-				getPos().getZ() + backSide.getDirectionVec().getZ() * 10);
+		return Block.FULL_BLOCK_AABB.offset(getPos()).expand(backSide.getDirectionVec().getX() * 10,
+				backSide.getDirectionVec().getY() * 10, backSide.getDirectionVec().getZ() * 10);
 	}
 
 	public boolean isValidStructure() {

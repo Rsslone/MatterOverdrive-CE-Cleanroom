@@ -16,4 +16,3 @@
 
 # KNOWN ISSUES / BUGS
 - When the fusion reactor is at max power and draining slightly, the 100% will flicker, solution is to switch to rounding after 1%
-- Fusion reactor controller screen flickers with Nothirium.

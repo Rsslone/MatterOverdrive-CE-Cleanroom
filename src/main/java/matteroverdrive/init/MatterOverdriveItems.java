@@ -2,6 +2,7 @@
 package matteroverdrive.init;
 
 import com.google.common.base.Preconditions;
+import matteroverdrive.MatterOverdrive;
 import matteroverdrive.items.*;
 import matteroverdrive.items.android.RougeAndroidParts;
 import matteroverdrive.items.android.TritaniumSpine;
@@ -196,17 +197,18 @@ public class MatterOverdriveItems {
 		weaponReceiver = register(new MOBaseItem("weapon_receiver"));
 		plasmaCore = register(new MOBaseItem("plasma_core"));
 
-//		Ships
-		scoutShip =  register(new ItemScoutShip("scout_ship"));
-		colonizerShip =  register(new ItemColonizerShip("ship_colonizer"));
+//		Ships & Buildings (only registered when starmap feature is enabled)
+		if (MatterOverdrive.CONFIG_HANDLER.starmapEnabled) {
+			scoutShip =  register(new ItemScoutShip("scout_ship"));
+			colonizerShip =  register(new ItemColonizerShip("ship_colonizer"));
 
-//		Buildings
-		shipFactory =  register(new ShipFactory("ship_factory"));
-		buildingBase =  register(new ItemBuildingBase("building_base"));
-		buildingMatterExtractor =  register(new ItemBuildingMatterExtractor("building_matter_extractor"));
-		buildingResidential =  register(new ItemBuildingResidential("building_residential"));
-		buildingShipHangar =  register(new ItemBuildingShipHangar("building_ship_hangar"));
-		buildingPowerGenerator =  register(new ItemBuildingPowerGenerator("building_power_generator"));
+			shipFactory =  register(new ShipFactory("ship_factory"));
+			buildingBase =  register(new ItemBuildingBase("building_base"));
+			buildingMatterExtractor =  register(new ItemBuildingMatterExtractor("building_matter_extractor"));
+			buildingResidential =  register(new ItemBuildingResidential("building_residential"));
+			buildingShipHangar =  register(new ItemBuildingShipHangar("building_ship_hangar"));
+			buildingPowerGenerator =  register(new ItemBuildingPowerGenerator("building_power_generator"));
+		}
         
 //		Weapons
 		phaser = register(new Phaser("phaser"));

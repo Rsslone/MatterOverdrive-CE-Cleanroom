@@ -5,11 +5,11 @@ import java.util.Random;
 import matteroverdrive.MatterOverdrive;
 import matteroverdrive.Reference;
 import matteroverdrive.api.quest.QuestStack;
-import matteroverdrive.blocks.BlockTritaniumCrate;
+import matteroverdrive.blocks.BlockNewTritaniumCrate;
 import matteroverdrive.blocks.BlockWeaponStation;
 import matteroverdrive.blocks.includes.MOBlock;
 import matteroverdrive.tile.TileEntityHoloSign;
-import matteroverdrive.tile.TileEntityTritaniumCrate;
+import matteroverdrive.tile.TileEntityNewTritaniumCrate;
 import matteroverdrive.tile.TileEntityWeaponStation;
 import matteroverdrive.util.MOInventoryHelper;
 import matteroverdrive.util.WeaponFactory;
@@ -18,7 +18,6 @@ import matteroverdrive.world.MOLootTableManager;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.inventory.IInventory;
-import net.minecraft.item.EnumDyeColor;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
@@ -48,7 +47,7 @@ public class MOWorldGenCrashedSpaceShip extends MOWorldGenBuilding {
 		addMapping(0xdfd938, MatterOverdrive.BLOCKS.decorative_tritanium_plate_stripe);
 		addMapping(0x5d89ab, MatterOverdrive.BLOCKS.decorative_holo_matrix);
 		addMapping(0x77147d, MatterOverdrive.BLOCKS.weapon_station);
-		addMapping(0xb04a90, MatterOverdrive.BLOCKS.tritaniumCrateColored[EnumDyeColor.LIGHT_BLUE.getMetadata()]); // light
+		addMapping(0xb04a90, MatterOverdrive.BLOCKS.new_tritanium_crate_base); // light
 																													// blue
 		addMapping(0x94deea, MatterOverdrive.BLOCKS.decorative_separator);
 		addMapping(0xff9c00, MatterOverdrive.BLOCKS.decorative_coils);
@@ -72,12 +71,17 @@ public class MOWorldGenCrashedSpaceShip extends MOWorldGenBuilding {
 					((TileEntityHoloSign) tileEntity).setText(holoTexts[random.nextInt(holoTexts.length)]);
 				}
 			}
-		} else if (state.getBlock() instanceof BlockTritaniumCrate) {
-			world.setBlockState(pos, state.withProperty(MOBlock.PROPERTY_DIRECTION, EnumFacing.WEST), 3);
+		} else if (state.getBlock() instanceof BlockNewTritaniumCrate) {
+			IBlockState crateState = state.withProperty(MOBlock.PROPERTY_DIRECTION, EnumFacing.WEST);
+			if (colorsMatch(color, 0xb04a90)) {
+				crateState = crateState.withProperty(BlockNewTritaniumCrate.COLOR,
+						BlockNewTritaniumCrate.Color.LIGHTBLUE);
+			}
+			world.setBlockState(pos, crateState, 3);
 			TileEntity tileEntity = world.getTileEntity(pos);
 
 			if (tileEntity instanceof IInventory) {
-				TileEntityTritaniumCrate chest = (TileEntityTritaniumCrate) tileEntity;
+				TileEntityNewTritaniumCrate chest = (TileEntityNewTritaniumCrate) tileEntity;
 				LootContext.Builder lootcontext$builder = new LootContext.Builder((WorldServer) world);
 				LootTable loottable = world.getLootTableManager()
 						.getLootTableFromLocation(MOLootTableManager.MO_CRASHED_SHIP);

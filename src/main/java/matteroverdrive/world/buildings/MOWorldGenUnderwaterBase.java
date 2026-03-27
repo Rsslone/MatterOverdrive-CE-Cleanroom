@@ -3,13 +3,13 @@ package matteroverdrive.world.buildings;
 import matteroverdrive.MatterOverdrive;
 import matteroverdrive.Reference;
 import matteroverdrive.blocks.BlockDecorative;
+import matteroverdrive.blocks.BlockNewTritaniumCrate;
 import matteroverdrive.api.quest.QuestStack;
-import matteroverdrive.blocks.BlockTritaniumCrate;
 import matteroverdrive.blocks.BlockWeaponStation;
 import matteroverdrive.blocks.BlockPatternStorage;
 import matteroverdrive.blocks.includes.MOBlock;
 import matteroverdrive.tile.TileEntityHoloSign;
-import matteroverdrive.tile.TileEntityTritaniumCrate;
+import matteroverdrive.tile.TileEntityNewTritaniumCrate;
 import matteroverdrive.tile.TileEntityWeaponStation;
 import matteroverdrive.util.MOInventoryHelper;
 import matteroverdrive.util.WeaponFactory;
@@ -21,7 +21,6 @@ import net.minecraft.block.Block;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.item.EnumDyeColor;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -52,15 +51,15 @@ public class MOWorldGenUnderwaterBase extends MOWorldGenBuilding {
 		addMapping(0x77d1b6, Blocks.RED_FLOWER);
 		addMapping(0xd2fb50, MatterOverdrive.BLOCKS.industrialGlass);
 		addMapping(0xc1e4e, Blocks.FARMLAND);
-		addMapping(0xa7ac65, MatterOverdrive.BLOCKS.tritaniumCrateColored[EnumDyeColor.ORANGE.getMetadata()]); // orange
+		addMapping(0xa7ac65, MatterOverdrive.BLOCKS.new_tritanium_crate_base); // orange
 																												// crate
 		addMapping(0xd6a714, Blocks.STAINED_GLASS);
 		addMapping(0x2c5ae9, MatterOverdrive.BLOCKS.weapon_station);
 		addMapping(0xacd8c, MatterOverdrive.BLOCKS.androidStation);
-		addMapping(0x7018f9, MatterOverdrive.BLOCKS.tritaniumCrateColored[EnumDyeColor.LIGHT_BLUE.getMetadata()]); // light
+		addMapping(0x7018f9, MatterOverdrive.BLOCKS.new_tritanium_crate_base); // light
 																													// blue
-		addMapping(0x4657cc, MatterOverdrive.BLOCKS.tritaniumCrateColored[EnumDyeColor.LIME.getMetadata()]); // lime
-		addMapping(0x1f2312, MatterOverdrive.BLOCKS.tritaniumCrateColored[EnumDyeColor.WHITE.getMetadata()]); // white
+		addMapping(0x4657cc, MatterOverdrive.BLOCKS.new_tritanium_crate_base); // lime
+		addMapping(0x1f2312, MatterOverdrive.BLOCKS.new_tritanium_crate_base); // white
 		addMapping(0xd3371d, MatterOverdrive.BLOCKS.machine_hull);
 		addMapping(0x3640f9, Blocks.STONE_BUTTON);
 		addMapping(0xeff73d, MatterOverdrive.BLOCKS.network_switch);
@@ -72,7 +71,7 @@ public class MOWorldGenUnderwaterBase extends MOWorldGenBuilding {
 		addMapping(0x68b68c, MatterOverdrive.BLOCKS.matter_analyzer);
 		addMapping(0x2cb0c7, MatterOverdrive.BLOCKS.starMap);
 		addMapping(0x1b2ff7, MatterOverdrive.BLOCKS.network_pipe);
-		addMapping(0x5eaab, MatterOverdrive.BLOCKS.tritaniumCrate);
+		addMapping(0x5eaab, MatterOverdrive.BLOCKS.new_tritanium_crate_base);
 		addMapping(0x11003e, MatterOverdrive.BLOCKS.chargingStation);
 		addMapping(0xb31e83, Blocks.CARROTS);
 		addMapping(0xc78e77, MatterOverdrive.BLOCKS.replicator);
@@ -142,11 +141,25 @@ public class MOWorldGenUnderwaterBase extends MOWorldGenBuilding {
 					((TileEntityHoloSign) tileEntity).setText(holoTexts[random.nextInt(holoTexts.length)]);
 				}
 			}
-		} else if (state.getBlock() instanceof BlockTritaniumCrate) {
+		} else if (state.getBlock() instanceof BlockNewTritaniumCrate) {
+			IBlockState crateState = state;
+			if (colorsMatch(color, 0xa7ac65)) {
+				crateState = crateState.withProperty(BlockNewTritaniumCrate.COLOR, BlockNewTritaniumCrate.Color.ORANGE);
+			} else if (colorsMatch(color, 0x7018f9)) {
+				crateState = crateState.withProperty(BlockNewTritaniumCrate.COLOR,
+						BlockNewTritaniumCrate.Color.LIGHTBLUE);
+			} else if (colorsMatch(color, 0x4657cc)) {
+				crateState = crateState.withProperty(BlockNewTritaniumCrate.COLOR, BlockNewTritaniumCrate.Color.LIME);
+			} else if (colorsMatch(color, 0x1f2312)) {
+				crateState = crateState.withProperty(BlockNewTritaniumCrate.COLOR, BlockNewTritaniumCrate.Color.WHITE);
+			} else if (colorsMatch(color, 0x5eaab)) {
+				crateState = crateState.withProperty(BlockNewTritaniumCrate.COLOR, BlockNewTritaniumCrate.Color.BASE);
+			}
+			world.setBlockState(pos, crateState, 3);
 			TileEntity tileEntity = world.getTileEntity(pos);
 
 			if (tileEntity instanceof IInventory) {
-				TileEntityTritaniumCrate chest = (TileEntityTritaniumCrate) tileEntity;
+				TileEntityNewTritaniumCrate chest = (TileEntityNewTritaniumCrate) tileEntity;
 				LootContext.Builder lootcontext$builder = new LootContext.Builder((WorldServer) world);
 				LootTable loottable = world.getLootTableManager()
 						.getLootTableFromLocation(MOLootTableManager.MO_CRASHED_SHIP);

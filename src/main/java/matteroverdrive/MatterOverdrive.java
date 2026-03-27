@@ -23,6 +23,7 @@ import matteroverdrive.init.*;
 import matteroverdrive.matter_network.MatterNetworkRegistry;
 import matteroverdrive.network.PacketPipeline;
 import matteroverdrive.proxy.CommonProxy;
+import matteroverdrive.tile.TileEntityNewTritaniumCrate;
 import matteroverdrive.util.AndroidPartsFactory;
 import matteroverdrive.util.DialogFactory;
 import matteroverdrive.util.QuestFactory;
@@ -37,6 +38,7 @@ import net.minecraftforge.fml.common.Mod.Instance;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.*;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
+import net.minecraftforge.fml.common.registry.GameRegistry;
 
 import java.io.File;
 import java.util.concurrent.ExecutorService;

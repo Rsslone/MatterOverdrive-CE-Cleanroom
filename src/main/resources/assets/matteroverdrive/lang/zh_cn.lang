@@ -260,28 +260,9 @@ machine.tooltip.matter=物质
 machine.tooltip.energy=充能
 
 ## Tritanium Crate ##
-tile.tritanium_crate.name=三钛货箱
 
-tile.tritanium_crate_white.name=白色三钛货箱
-tile.tritanium_crate_orange.name=橙色三钛货箱
-tile.tritanium_crate_magenta.name=品红色三钛货箱
-tile.tritanium_crate_light_blue.name=浅蓝色三钛货箱
-tile.tritanium_crate_yellow.name=黄色三钛货箱
-tile.tritanium_crate_lime.name=黄绿色三钛货箱
-tile.tritanium_crate_pink.name=粉色三钛货箱
-tile.tritanium_crate_gray.name=灰色三钛货箱
-tile.tritanium_crate_silver.name=淡灰色三钛货箱
-tile.tritanium_crate_cyan.name=青色三钛货箱
-tile.tritanium_crate_purple.name=紫色三钛货箱
-tile.tritanium_crate_blue.name=蓝色三钛货箱
-tile.tritanium_crate_brown.name=棕色三钛货箱
-tile.tritanium_crate_green.name=绿色三钛货箱
-tile.tritanium_crate_red.name=红色三钛货箱
-tile.tritanium_crate_black.name=黑色三钛货箱
 
-tile.new_tritanium_crate.name=新型三钛货箱
-tile.new_tritanium_crate_white.name=新型白色三钛货箱
-tile.new_tritanium_crate_purple.name=新型紫色三钛货箱
+tile.new_tritanium_crate.name=三钛货箱
 
 ## Entities ##
 
@@ -745,8 +726,7 @@ color.orange=橙色
 color.white=白色
 
 material.tritanium=三钛合金
-container.tritanium_crate=三钛合金货箱
-container.new_tritanium_crate=新型三钛合金货箱
+container.new_tritanium_crate=三钛合金货箱
 rarity.legendary=传奇
 
 mo.jei.time=%d秒

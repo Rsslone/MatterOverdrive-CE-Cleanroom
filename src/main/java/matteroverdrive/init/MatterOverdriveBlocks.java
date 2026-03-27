@@ -15,7 +15,6 @@ import net.minecraft.block.Block;
 import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemColored;
@@ -66,8 +65,7 @@ public class MatterOverdriveBlocks {
 	public BlockFluidMatterPlasma blockMatterPlasma;
 	public BlockFluidClassic blockMoltenTritanium;
 	// Storage
-	public BlockTritaniumCrate tritaniumCrate;
-	public BlockTritaniumCrate[] tritaniumCrateColored;
+	public BlockNewTritaniumCrate new_tritanium_crate_base;
 	// Machines
 	public BlockInscriber inscriber;
 	public BlockContractMarket contractMarket;
@@ -104,11 +102,6 @@ public class MatterOverdriveBlocks {
 	public BlockMicrowave microwave;
 	public BlockIndustrialGlass industrialGlass;
 	private int registeredCount = 0;
-
-	// Test new crates.
-	public BlockNewTritaniumCrate new_tritanium_crate_base;
-	public BlockNewTritaniumCrate new_tritanium_crate_white;
-	public BlockNewTritaniumCrate new_tritanium_crate_purple;
 
 	@SubscribeEvent
 	public static void registerBlocks(RegistryEvent.Register<Block> event) {
@@ -182,12 +175,6 @@ public class MatterOverdriveBlocks {
 		microwave = register(new BlockMicrowave(Material.IRON, "microwave"));
 
 //		Decorative
-		tritaniumCrate = register(new BlockTritaniumCrate(TRITANIUM, "tritanium_crate"));
-		EnumDyeColor[] colors = EnumDyeColor.values();
-		tritaniumCrateColored = new BlockTritaniumCrate[colors.length];
-		for (EnumDyeColor color : colors)
-			tritaniumCrateColored[color.getMetadata()] = register(
-					new BlockTritaniumCrate(TRITANIUM, "tritanium_crate_" + color.getName()));
 		new_tritanium_crate_base = register(new BlockNewTritaniumCrate(TRITANIUM, "new_tritanium_crate", 0));
 		industrialGlass = register(new BlockIndustrialGlass(Material.GLASS, "industrial_glass"));
 		decorative_stripes = register(new BlockDecorative(TRITANIUM, "decorative.stripes", 5, 1, 8, 0xd4b108));

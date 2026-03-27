@@ -5,6 +5,8 @@
 -   The Teleporter Controller could also lock onto other things and teleport it, or increase the range with a manual lock. (Another player required).
 - Implement a HoloDeck, proxy for interdim travel with approved dim list.
 - Balance / Config for android shields.
+-   Change how long the shield last, or how long its cooldown is.
+- Implement a "infinite" replication request.
 
 
 # OPTIMIZATIONS

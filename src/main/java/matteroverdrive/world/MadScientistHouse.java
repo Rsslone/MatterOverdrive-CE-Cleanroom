@@ -4,7 +4,7 @@ package matteroverdrive.world;
 import matteroverdrive.MatterOverdrive;
 import matteroverdrive.entity.EntityVillagerMadScientist;
 import matteroverdrive.init.MatterOverdriveEntities;
-import matteroverdrive.tile.TileEntityTritaniumCrate;
+import matteroverdrive.tile.TileEntityNewTritaniumCrate;
 import net.minecraft.block.BlockDoor;
 import net.minecraft.block.BlockStairs;
 import net.minecraft.block.material.Material;
@@ -184,8 +184,8 @@ public class MadScientistHouse extends StructureVillagePieces.Village {
 			BlockPos pos = new BlockPos(this.getXWithOffset(1, 4), this.getYWithOffset(1), this.getZWithOffset(1, 4));
 
 			if (boundingBox.isVecInside(pos)) {
-				worldIn.setBlockState(pos, MatterOverdrive.BLOCKS.tritaniumCrate.getDefaultState(), 2);
-				TileEntityTritaniumCrate tileentitycrate = (TileEntityTritaniumCrate) worldIn.getTileEntity(pos);
+				worldIn.setBlockState(pos, MatterOverdrive.BLOCKS.new_tritanium_crate_base.getDefaultState(), 2);
+				TileEntityNewTritaniumCrate tileentitycrate = (TileEntityNewTritaniumCrate) worldIn.getTileEntity(pos);
 				tileentitycrate.getInventory().addItem(MatterOverdrive.QUEST_FACTORY
 						.generateQuestStack(randomIn, MatterOverdrive.QUESTS.getQuestByName("gmo")).getContract());
 				ItemStack scanner = new ItemStack(MatterOverdrive.ITEMS.dataPad);

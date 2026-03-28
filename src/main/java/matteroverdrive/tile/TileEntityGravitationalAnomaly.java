@@ -5,9 +5,11 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
@@ -15,6 +17,7 @@ import javax.annotation.Nullable;
 import org.apache.logging.log4j.Level;
 import org.lwjgl.util.vector.Vector3f;
 
+import matteroverdrive.MatterOverdrive;
 import matteroverdrive.api.IScannable;
 import matteroverdrive.api.events.anomaly.MOEventGravitationalAnomalyConsume;
 import matteroverdrive.api.gravity.AnomalySuppressor;
@@ -53,10 +56,12 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
+import net.minecraftforge.common.ForgeChunkManager;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.IFluidBlock;
@@ -77,6 +82,11 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
     public static final int BLOCK_DESTORY_DELAY = 6;
     public static final int MAX_BLOCKS_PER_HARVEST = 6;
     public static final int MAX_LIQUIDS_PER_HARVEST = 32;
+    public static int ENTITY_GRAVITATION_INTERVAL = 2;
+    public static int BLOCK_SCAN_SLICES = 1;
+    public static int BLOCK_SCAN_INTERVAL_TICKS = 20;
+    public static int SCAN_Y_MODE = 0;
+    public static boolean FORCE_LOAD_ENABLED = true;
     public static final double STREHGTH_MULTIPLYER = 0.00001;
     public static final double G = 6.67384;
     public static final double G2 = G * 2;
@@ -90,10 +100,18 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
     PriorityQueue<BlockPos> blocks;
     List<AnomalySuppressor> supressors;
     private float suppression;
+    private boolean derivedMassCacheDirty = true;
+    private double cachedRealMassUnsuppressed;
+    private double cachedRealMass;
+    private float cachedBaseBreakStrength;
 
     private BlockPos blockPos;
     public int tickCounter = 0;
     public int index = 0;
+    private int blockScanSlice = 0;
+    private ForgeChunkManager.Ticket chunkTicket;
+    private Set<ChunkPos> forcedChunks = new HashSet<>();
+    private long nextChunkUpdateTick = 0;
 
     //region Constructors
     public TileEntityGravitationalAnomaly()
@@ -122,15 +140,26 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
         }
         else
         {
-            float tmpSuppression = calculateSuppression();
-            if (tmpSuppression != suppression)
-            {
-                suppression = tmpSuppression;
+            if (!supressors.isEmpty()) {
+                float tmpSuppression = calculateSuppression();
+                setSuppression(tmpSuppression);
             }
 
-            manageEntityGravitation(world, 0);
+            if (FORCE_LOAD_ENABLED) {
+                long now = world.getTotalWorldTime();
+                if (now >= nextChunkUpdateTick) {
+                    updateForcedChunks(world);
+                    nextChunkUpdateTick = now + 100;
+                }
+            }
+
+            int gravitationInterval = Math.max(1, ENTITY_GRAVITATION_INTERVAL);
+            long phase = world.getTotalWorldTime() + (getPos().toLong() & 1L);
+            if (phase % gravitationInterval == 0) {
+                manageEntityGravitation(world, gravitationInterval);
+            }
             tickCounter++;
-            if (tickCounter == 20) {
+            if (tickCounter >= BLOCK_SCAN_INTERVAL_TICKS) {
                 manageBlockDestory(world);
                 index++;
                 tickCounter = 0;
@@ -186,6 +215,8 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
 			return;
 		}
 
+		float tickScale = Math.max(1.0f, ticks);
+
 		double range = getMaxRange() + 1;
 		AxisAlignedBB bb = new AxisAlignedBB(getPos().getX() - range, getPos().getY() - range, getPos().getZ() - range,
 				getPos().getX() + range, getPos().getY() + range, getPos().getZ() + range);
@@ -202,7 +233,7 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
 
 			// pos.y += entity.getEyeHeight();
 			double distanceSq = entityPos.squareDistanceTo(blockPos);
-			double acceleration = getAcceleration(distanceSq);
+			double acceleration = getAcceleration(distanceSq) * tickScale;
 			double eventHorizon = getEventHorizon();
 			Vec3d dir = blockPos.subtract(entityPos).normalize();
 			dir = new Vec3d(dir.x * acceleration, dir.y * acceleration, dir.z * acceleration);
@@ -320,6 +351,8 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
 		super.onChunkUnload();
 		if (world.isRemote) {
 			stopSounds();
+		} else {
+			releaseTicket();
 		}
 	}
 
@@ -349,6 +382,8 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
 		super.invalidate();
 		if (world.isRemote) {
 			stopSounds();
+		} else {
+			releaseTicket();
 		}
 	}
     //endregion
@@ -378,33 +413,57 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
 		int range = (int) Math.floor(getBlockBreakRange());
 		double distance;
 		double eventHorizon = getEventHorizon();
-		BlockPos blockPos;
 		float hardness;
 		IBlockState blockState;
+		int ax = getPos().getX(), ay = getPos().getY(), az = getPos().getZ();
+		double rangeSq = (double) range * range;
 
 		blocks = new PriorityQueue<>(1, new BlockComparitor(getPos()));
 
 		if (blockDestoryTimer.hasDelayPassed(world, BLOCK_DESTORY_DELAY)) {
+			int yMin, yMax;
+			if (SCAN_Y_MODE == 2) {
+				yMin = -Math.min(range, 8);
+				yMax =  Math.min(range, 8);
+			} else if (SCAN_Y_MODE == 1) {
+				int half = range / 2;
+				yMin = -half;
+				yMax =  half;
+			} else {
+				yMin = -range;
+				yMax =  range;
+			}
+			int slices = Math.max(1, BLOCK_SCAN_SLICES);
+			BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
 			for (int x = -range; x < range; x++) {
-				for (int y = -range; y < range; y++) {
-					for (int z = -range; z < range; z++) {
-						blockPos = new BlockPos(getPos().getX() + x, getPos().getY() + y, getPos().getZ() + z);
-						blockState = world.getBlockState(blockPos);
-						distance = Math.sqrt(blockPos.distanceSq(getPos()));
-						hardness = blockState.getBlockHardness(world, blockPos);
-						if (blockState.getBlock() instanceof IFluidBlock
-								|| blockState.getBlock() instanceof BlockLiquid) {
+				// Slice gate: only process columns belonging to the current slice
+				if (((x + range) % slices) != blockScanSlice) continue;
+				for (int z = -range; z < range; z++) {
+					// 2D pre-cull: skip x,z columns that can never be in range
+					double dx2z2 = (double) x * x + (double) z * z;
+					if (dx2z2 > rangeSq) continue;
+					// Skip entire column if chunk is not loaded
+					if (!world.isBlockLoaded(mutablePos.setPos(ax + x, ay, az + z))) continue;
+					for (int y = yMin; y < yMax; y++) {
+						double distanceSq3d = dx2z2 + (double) y * y;
+						if (distanceSq3d > rangeSq) continue;
+						mutablePos.setPos(ax + x, ay + y, az + z);
+						blockState = world.getBlockState(mutablePos);
+						Block scanBlock = blockState.getBlock();
+						if (scanBlock == Blocks.AIR) continue;
+						distance = Math.sqrt(distanceSq3d);
+						hardness = blockState.getBlockHardness(world, mutablePos);
+						if (scanBlock instanceof IFluidBlock || scanBlock instanceof BlockLiquid) {
 							hardness = 1;
 						}
-
 						float strength = getBreakStrength((float) distance, range);
-                        blockState.getBlock();
-                        if (blockState.getBlock() != Blocks.AIR && distance <= range && hardness >= 0 && (distance < eventHorizon || hardness < strength)) {
-							blocks.add(blockPos);
+						if (hardness >= 0 && (distance < eventHorizon || hardness < strength)) {
+							blocks.add(mutablePos.toImmutable());
 						}
 					}
 				}
 			}
+			blockScanSlice = (blockScanSlice + 1) % slices;
 		}
 
 		for (BlockPos position : blocks) {
@@ -461,8 +520,8 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
 		ItemStack itemStack = entityItem.getItem();
 		if (!itemStack.isEmpty()) {
 			try {
-				mass = Math.addExact(mass,
-						(long) MatterHelper.getMatterAmountFromItem(itemStack) * (long) itemStack.getCount());
+					setMass(Math.addExact(mass,
+						(long) MatterHelper.getMatterAmountFromItem(itemStack) * (long) itemStack.getCount()));
 				markDirty();
 			} catch (ArithmeticException e) {
 				return false;
@@ -492,8 +551,8 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
 				fallingBlock.getBlock().getBlock().damageDropped(fallingBlock.getBlock()));
 		if (!itemStack.isEmpty()) {
 			try {
-				mass = Math.addExact(mass,
-						(long) MatterHelper.getMatterAmountFromItem(itemStack) * (long) itemStack.getCount());
+					setMass(Math.addExact(mass,
+						(long) MatterHelper.getMatterAmountFromItem(itemStack) * (long) itemStack.getCount()));
 				markDirty();
 			} catch (ArithmeticException e) {
 				return false;
@@ -508,7 +567,7 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
 
 	private boolean consumeLivingEntity(EntityLivingBase entity, float strength) {
 		try {
-			mass = Math.addExact(mass, (long) Math.min(entity.getHealth(), strength));
+			setMass(Math.addExact(mass, (long) Math.min(entity.getHealth(), strength)));
 			markDirty();
 		} catch (ArithmeticException e) {
 			return false;
@@ -577,7 +636,7 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
                 }
 
                 try {
-                    mass = Math.addExact(mass,matter);
+                    setMass(Math.addExact(mass,matter));
                 }
                 catch (ArithmeticException e)
                 {
@@ -687,11 +746,12 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
         while (iterator.hasNext())
         {
             AnomalySuppressor s = iterator.next();
+            s.tick();
             if (!s.isValid())
             {
                 iterator.remove();
+                continue;
             }
-                s.tick();
             suppression *= s.getAmount();
         }
         return suppression;
@@ -723,10 +783,10 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
     {
         if (categories.contains(MachineNBTCategory.DATA)) {
             this.supressors.clear();
-            mass = nbt.getLong("Mass");
-            suppression = nbt.getFloat("Suppression");
+            setMass(nbt.getLong("Mass"));
+            setSuppression(nbt.getFloat("Suppression"));
             NBTTagList suppressors = nbt.getTagList("suppressors", Constants.NBT.TAG_COMPOUND);
-            for (int i = 0;i < supressors.size();i++)
+            for (int i = 0;i < suppressors.tagCount();i++)
             {
                 NBTTagCompound suppressorTag = suppressors.getCompoundTagAt(i);
                 AnomalySuppressor s = new AnomalySuppressor(suppressorTag);
@@ -769,17 +829,20 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
     }
 
     public double getRealMass() {
-        return getRealMassUnsuppressed() * suppression;
+        updateDerivedMassCache();
+        return cachedRealMass;
     }
 
     public double getRealMassUnsuppressed()
     {
-        return Math.log1p(Math.max(mass,0) * STREHGTH_MULTIPLYER);
+        updateDerivedMassCache();
+        return cachedRealMassUnsuppressed;
     }
 
     public float getBreakStrength(float distance,float maxRange)
     {
-        return ((float)getRealMass() * 4 * suppression) * getDistanceFalloff(distance,maxRange);
+        updateDerivedMassCache();
+        return cachedBaseBreakStrength * getDistanceFalloff(distance,maxRange);
     }
 
     public float getDistanceFalloff(float distance,float maxRange)
@@ -789,7 +852,107 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
 
     public float getBreakStrength()
     {
-        return (float)getRealMass() * 4 * suppression;
+        updateDerivedMassCache();
+        return cachedBaseBreakStrength;
+    }
+
+    private void setMass(long newMass)
+    {
+        if (mass != newMass)
+        {
+            mass = newMass;
+            derivedMassCacheDirty = true;
+        }
+    }
+
+    private void setSuppression(float newSuppression)
+    {
+        if (Float.compare(suppression, newSuppression) != 0)
+        {
+            suppression = newSuppression;
+            derivedMassCacheDirty = true;
+            markDirty();
+        }
+    }
+
+    private void updateDerivedMassCache()
+    {
+        if (!derivedMassCacheDirty)
+        {
+            return;
+        }
+        cachedRealMassUnsuppressed = Math.log1p(Math.max(mass, 0) * STREHGTH_MULTIPLYER);
+        cachedRealMass = cachedRealMassUnsuppressed * suppression;
+        cachedBaseBreakStrength = (float) cachedRealMass * 4 * suppression;
+        derivedMassCacheDirty = false;
+    }
+
+    @Override
+    public void onLoad() {
+        if (!world.isRemote && FORCE_LOAD_ENABLED) {
+            acquireTicket(world);
+            updateForcedChunks(world);
+        }
+    }
+
+    public void onTicketRestored(ForgeChunkManager.Ticket ticket, World world) {
+        this.chunkTicket = ticket;
+        ticket.getModData().setLong("AnomalyPos", getPos().toLong());
+        updateForcedChunks(world);
+    }
+
+    private void acquireTicket(World world) {
+        if (chunkTicket != null) return;
+        chunkTicket = ForgeChunkManager.requestTicket(MatterOverdrive.INSTANCE, world, ForgeChunkManager.Type.NORMAL);
+        if (chunkTicket != null) {
+            chunkTicket.getModData().setLong("AnomalyPos", getPos().toLong());
+        }
+    }
+
+    private void releaseTicket() {
+        if (chunkTicket != null) {
+            ForgeChunkManager.releaseTicket(chunkTicket);
+            chunkTicket = null;
+            forcedChunks = new HashSet<>();
+        }
+    }
+
+    private void updateForcedChunks(World world) {
+        if (chunkTicket == null) return;
+        int range = (int) Math.floor(getBlockBreakRange());
+        int ax = getPos().getX();
+        int az = getPos().getZ();
+        int minCx = (ax - range) >> 4;
+        int maxCx = (ax + range) >> 4;
+        int minCz = (az - range) >> 4;
+        int maxCz = (az + range) >> 4;
+        int anomalyCx = ax >> 4;
+        int anomalyCz = az >> 4;
+        double rangeSq = (double) range * range;
+        Set<ChunkPos> newChunks = new HashSet<>();
+        for (int cx = minCx; cx <= maxCx; cx++) {
+            for (int cz = minCz; cz <= maxCz; cz++) {
+                if (cx == anomalyCx && cz == anomalyCz) continue;
+                int nearX = Math.max(cx << 4, Math.min(ax, (cx << 4) + 15));
+                int nearZ = Math.max(cz << 4, Math.min(az, (cz << 4) + 15));
+                double dx = nearX - ax;
+                double dz = nearZ - az;
+                if (dx * dx + dz * dz <= rangeSq) {
+                    newChunks.add(new ChunkPos(cx, cz));
+                }
+            }
+        }
+        for (ChunkPos cp : newChunks) {
+            if (!forcedChunks.contains(cp)) {
+                ForgeChunkManager.forceChunk(chunkTicket, cp);
+            }
+        }
+        for (ChunkPos cp : forcedChunks) {
+            if (!newChunks.contains(cp)) {
+                ForgeChunkManager.unforceChunk(chunkTicket, cp);
+            }
+        }
+        forcedChunks = newChunks;
     }
     //endregion
 

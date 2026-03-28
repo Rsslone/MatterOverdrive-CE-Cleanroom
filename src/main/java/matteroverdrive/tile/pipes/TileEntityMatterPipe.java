@@ -30,7 +30,9 @@ import net.minecraftforge.fml.relauncher.Side;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Random;
 
 public class TileEntityMatterPipe extends TileEntityPipe implements IFluidPipe {
@@ -39,6 +41,8 @@ public class TileEntityMatterPipe extends TileEntityPipe implements IFluidPipe {
     protected FluidPipeNetwork fluidPipeNetwork;
     protected int transferSpeed;
     TimeTracker t;
+    private final Map<EnumFacing, BlockPos> transferTargets = new EnumMap<>(EnumFacing.class);
+    private boolean transferTargetsDirty = true;
 
     public TileEntityMatterPipe() {
         t = new TimeTracker();
@@ -49,7 +53,6 @@ public class TileEntityMatterPipe extends TileEntityPipe implements IFluidPipe {
     @Override
     public void update() {
         super.update();
-        needsUpdate = true;
         if (!world.isRemote) {
             manageTransfer();
             manageNetwork();
@@ -62,6 +65,7 @@ public class TileEntityMatterPipe extends TileEntityPipe implements IFluidPipe {
 		if (connCount < 1) {
 			if (!MOMathHelper.getBoolean(getConnectionsMask(), side.ordinal())) {
 				setConnection(side, true);
+                markTransferTargetsDirty();
 				world.markBlockRangeForRenderUpdate(pos, pos);
 				return true;
 			}
@@ -79,32 +83,66 @@ public class TileEntityMatterPipe extends TileEntityPipe implements IFluidPipe {
     }
 
 	public void manageTransfer() {
+        if (transferTargetsDirty) {
+            rebuildTransferTargets();
+        }
+
 		if (storage.getMatterStored() > 0 && getNetwork() != null) {
 			for (IFluidPipe pipe : getNetwork().getNodes()) {
-				for (EnumFacing direction : EnumFacing.VALUES) {
-					TileEntity handler = pipe.getTile().getWorld()
-							.getTileEntity(pipe.getTile().getPos().offset(direction));
-					if (handler != null && handler.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY,
-							direction.getOpposite()) && !(handler instanceof TileEntityMachineDecomposer) && !(handler instanceof IFluidPipe)) {
-						int amount = storage.extractMatter(handler
-								.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, direction.getOpposite())
-								.fill(new FluidStack(OverdriveFluids.matterPlasma, storage.getMatterStored()), true),
-								false);
-						if (amount != 0) {
-							if (handler != null && handler.hasCapability(MatterOverdriveCapabilities.MATTER_HANDLER,
-									direction.getOpposite())) {
-								MatterOverdrive.NETWORK.sendToAllAround(new PacketMatterUpdate(handler), handler, 64);
-							}
-							if (storage.getMatterStored() <= 0) {
-								return;
-							}
-						}
+                TileEntityMatterPipe networkPipe = (TileEntityMatterPipe) pipe;
+                if (networkPipe.transferTargetsDirty) {
+                    networkPipe.rebuildTransferTargets();
+                }
 
-					}
+                for (Map.Entry<EnumFacing, BlockPos> entry : networkPipe.transferTargets.entrySet()) {
+                    EnumFacing direction = entry.getKey();
+                    TileEntity handler = networkPipe.getWorld().getTileEntity(entry.getValue());
+                    if (handler == null || handler.isInvalid() || !handler.hasCapability(
+                            CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, direction.getOpposite())) {
+                        networkPipe.transferTargetsDirty = true;
+                        continue;
+                    }
+
+                    int amount = storage.extractMatter(handler
+                            .getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, direction.getOpposite())
+                            .fill(new FluidStack(OverdriveFluids.matterPlasma, storage.getMatterStored()), true),
+                            false);
+                    if (amount != 0) {
+                        if (handler.hasCapability(MatterOverdriveCapabilities.MATTER_HANDLER,
+                                direction.getOpposite())) {
+                            MatterOverdrive.NETWORK.sendToAllAround(new PacketMatterUpdate(handler), handler, 64);
+                        }
+                        if (storage.getMatterStored() <= 0) {
+                            return;
+                        }
+                    }
 				}
 			}
 		}
 	}
+
+    private void markTransferTargetsDirty() {
+        transferTargetsDirty = true;
+    }
+
+    private void rebuildTransferTargets() {
+        transferTargets.clear();
+        for (EnumFacing direction : EnumFacing.VALUES) {
+            if (!isConnectableSide(direction)) {
+                continue;
+            }
+
+            BlockPos neighborPos = pos.offset(direction);
+            TileEntity handler = world.getTileEntity(neighborPos);
+            if (handler != null
+                    && !(handler instanceof TileEntityMachineDecomposer)
+                    && !(handler instanceof IFluidPipe)
+                    && handler.hasCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, direction.getOpposite())) {
+                transferTargets.put(direction, neighborPos);
+            }
+        }
+        transferTargetsDirty = false;
+    }
 
     @Override
     public boolean canConnectToPipe(TileEntity entity, EnumFacing direction) {
@@ -122,6 +160,7 @@ public class TileEntityMatterPipe extends TileEntityPipe implements IFluidPipe {
 
     @Override
     public void writeCustomNBT(NBTTagCompound comp, EnumSet<MachineNBTCategory> categories, boolean toDisk) {
+        super.writeCustomNBT(comp, categories, toDisk);
         if (!world.isRemote && categories.contains(MachineNBTCategory.DATA) && toDisk) {
             storage.writeToNBT(comp);
         }
@@ -129,6 +168,7 @@ public class TileEntityMatterPipe extends TileEntityPipe implements IFluidPipe {
 
     @Override
     public void readCustomNBT(NBTTagCompound comp, EnumSet<MachineNBTCategory> categories) {
+        super.readCustomNBT(comp, categories);
         if (categories.contains(MachineNBTCategory.DATA)) {
             storage.readFromNBT(comp);
         }
@@ -161,6 +201,7 @@ public class TileEntityMatterPipe extends TileEntityPipe implements IFluidPipe {
 					}
 				}
 			}
+            markTransferTargetsDirty();
 		}
 	}
 
@@ -180,20 +221,52 @@ public class TileEntityMatterPipe extends TileEntityPipe implements IFluidPipe {
 
     @Override
     public void onDestroyed(World worldIn, BlockPos pos, IBlockState state) {
+        if (!worldIn.isRemote) {
+            markTransferTargetsDirty();
+            if (fluidPipeNetwork != null) {
+                fluidPipeNetwork.onNodeDestroy(state, this);
+            }
+
+            for (EnumFacing enumFacing : EnumFacing.VALUES) {
+                if (isConnectableSide(enumFacing)) {
+                    TileEntity tileEntityConnection = worldIn.getTileEntity(pos.offset(enumFacing));
+                    if (tileEntityConnection instanceof TileEntityMatterPipe) {
+                        ((TileEntityMatterPipe) tileEntityConnection).breakConnection(state, enumFacing.getOpposite());
+                    }
+                }
+            }
+        }
     }
     
     @Override
     public void onChunkUnload() {
+        if (!world.isRemote) {
+            markTransferTargetsDirty();
+            IBlockState blockState = world.getBlockState(getPos());
+            if (fluidPipeNetwork != null) {
+                fluidPipeNetwork.onNodeDestroy(blockState, this);
+            }
+        }
     }
 
 	public void breakConnection(IBlockState blockState, EnumFacing side) {
 		setConnection(side, false);
+        markTransferTargetsDirty();
 		world.markBlockRangeForRenderUpdate(pos, pos);
 	}
 
     @Override
     public void onNeighborBlockChange(IBlockAccess world, BlockPos pos, IBlockState state, Block neighborBlock) {
+        markTransferTargetsDirty();
+        queueUpdate();
+    }
 
+    @Override
+    public void setConnections(int connections, boolean notify) {
+        super.setConnections(connections, notify);
+        if (getConnectionsMask() == connections) {
+            markTransferTargetsDirty();
+        }
     }
 
     @Override

@@ -85,6 +85,10 @@ public abstract class TileEntityPipe extends MOTileEntity implements ITickable {
     }
 
     public void setConnections(int connections, boolean notify) {
+        if (this.connections == connections) {
+            return;
+        }
+
         this.connections = connections;
         if (notify) {
             UPDATING_POS.add(getPos());
@@ -100,6 +104,10 @@ public abstract class TileEntityPipe extends MOTileEntity implements ITickable {
     }
 
     public void setConnection(EnumFacing connection, boolean value) {
+        if (isConnectedFromSide(connection) == value) {
+            return;
+        }
+
         this.connections = MOMathHelper.setBoolean(connections, connection.ordinal(), value);
         markDirty();
     }

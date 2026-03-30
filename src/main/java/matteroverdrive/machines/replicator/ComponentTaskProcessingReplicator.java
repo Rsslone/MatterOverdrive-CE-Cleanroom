@@ -134,13 +134,15 @@ public class ComponentTaskProcessingReplicator extends
 					int matter = storage.getMatterStored();
 					storage.setMatterStored(matter - matterAmount);
 					MatterNetworkTaskReplicatePattern task = getTaskQueue().peek();
-					task.setAmount(task.getAmount() - 1);
-					if (task.getAmount() <= 0) {
-						task.setState(MatterNetworkTaskState.FINISHED);
-						getTaskQueue().dequeue();
-						sendTaskQueueRemovedFromWatchers(task.getId());
-					} else {
-						sendTaskQueueChangedToWatchers(task.getId());
+					if (task.getAmount() != -1) {
+						task.setAmount(task.getAmount() - 1);
+						if (task.getAmount() <= 0) {
+							task.setState(MatterNetworkTaskState.FINISHED);
+							getTaskQueue().dequeue();
+							sendTaskQueueRemovedFromWatchers(task.getId());
+						} else {
+							sendTaskQueueChangedToWatchers(task.getId());
+						}
 					}
 					return true;
 				}

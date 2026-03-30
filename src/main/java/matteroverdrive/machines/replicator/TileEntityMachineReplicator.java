@@ -56,6 +56,7 @@ public class TileEntityMachineReplicator extends MOTileEntityMachineMatter
 	public static int MATTER_STORAGE = 1024;
 	public static int ENERGY_CAPACITY = 512000;
 	public static int ENERGY_TRANSFER = 512000;
+	public static boolean ALLOW_INFINITE_REPLICATION = true;
 	public int OUTPUT_SLOT_ID = 0;
 	public int SECOND_OUTPUT_SLOT_ID = 1;
 	public int DATABASE_SLOT_ID = 2;

@@ -5,6 +5,7 @@ import matteroverdrive.Reference;
 import matteroverdrive.container.IButtonHandler;
 import matteroverdrive.data.matter_network.ItemPatternMapping;
 import matteroverdrive.gui.MOGuiBase;
+import matteroverdrive.machines.replicator.TileEntityMachineReplicator;
 import matteroverdrive.util.RenderUtils;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.text.TextFormatting;
@@ -70,7 +71,7 @@ public class ElementMonitorItemPattern extends ElementItemPattern {
 							64);
 				}
 			} else if (mouseX > posX + 24 && mouseY > posY + 24) {
-				if (amount == 0) {
+				if (amount == 0 && TileEntityMachineReplicator.ALLOW_INFINITE_REPLICATION) {
 					amount = -1;
 				} else if (amount != -1) {
 					amount = Math.max(amount

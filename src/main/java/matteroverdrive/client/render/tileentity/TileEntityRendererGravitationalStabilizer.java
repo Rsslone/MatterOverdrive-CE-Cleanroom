@@ -98,6 +98,24 @@ public class TileEntityRendererGravitationalStabilizer
 		RenderUtils.beginDrawinngBlockScreen(x, y, z, side, Reference.COLOR_HOLO, stabilizer);
 
 		List<String> infos = new ArrayList<>();
+
+		// Power % header line
+		int energyStored = stabilizer.getEnergyStorage().getEnergyStored();
+		int energyMax = stabilizer.getEnergyStorage().getMaxEnergyStored();
+		int powerPct = energyMax > 0 ? Math.round((float) energyStored / energyMax * 100) : 0;
+		infos.add("Power: " + powerPct + "%");
+
+		// Stress % header line
+		float stress = stabilizer.getPercentage();
+		if (stress >= 0) {
+			infos.add("Stress: " + Math.round(stress * 100) + "%");
+		} else {
+			infos.add("Stress: N/A");
+		}
+
+		// blank spacer
+		infos.add("");
+
 		anomaly.addInfo(anomaly.getWorld(), anomaly.getPos().getX(), anomaly.getPos().getY(), anomaly.getPos().getZ(),
 				infos);
 		RenderUtils.drawScreenInfoWithGlobalAutoSize(infos.toArray(new String[infos.size()]), Reference.COLOR_HOLO,

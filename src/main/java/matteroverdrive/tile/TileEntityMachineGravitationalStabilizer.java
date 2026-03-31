@@ -7,11 +7,13 @@ import matteroverdrive.blocks.BlockGravitationalAnomaly;
 import matteroverdrive.blocks.includes.MOBlock;
 import matteroverdrive.client.render.RenderParticlesHandler;
 import matteroverdrive.fx.GravitationalStabilizerBeamParticle;
+import matteroverdrive.handler.ConfigurationHandler;
 import matteroverdrive.machines.MachineNBTCategory;
-import matteroverdrive.machines.MOTileEntityMachine;
+import matteroverdrive.machines.configs.ConfigPropertyStringList;
 import matteroverdrive.init.MatterOverdriveSounds;
 import matteroverdrive.machines.events.MachineEvent;
 import matteroverdrive.proxy.ClientProxy;
+import matteroverdrive.util.MOStringHelper;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
@@ -33,30 +35,57 @@ import java.util.EnumSet;
 
 import static matteroverdrive.util.MOBlockHelper.getAboveSide;
 
-public class TileEntityMachineGravitationalStabilizer extends MOTileEntityMachine {
+public class TileEntityMachineGravitationalStabilizer extends MOTileEntityMachineEnergy {
 	public static Color color1 = new Color(0xFFFFFF);
 	public static Color color2 = new Color(0xFF0000);
 	public static Color color3 = new Color(0x115A84);
+
+	// Energy config — populated by BlockGravitationalStabilizer.onConfigChanged()
+	public static int ENERGY_CAPACITY = 100000;
+	public static int MAX_ENERGY_RECEIVE = 2000;
+	public static int BASE_ENERGY_PER_TICK = 20;
+	public static int MAX_ENERGY_PER_TICK = 200;
+
 	RayTraceResult hit;
 	private EnumFacing cachedFront;
+	private int rescanTimer = 20; // start at 20 so first tick triggers an immediate scan
 
 	public TileEntityMachineGravitationalStabilizer() {
 		super(4);
+		energyStorage.setCapacity(ENERGY_CAPACITY);
+		energyStorage.setMaxReceive(MAX_ENERGY_RECEIVE);
+		energyStorage.setMaxExtract(MAX_ENERGY_PER_TICK);
+	}
+
+	@Override
+	protected void registerComponents() {
+		super.registerComponents();
+		getConfigs().addProperty(new ConfigPropertyStringList("comparatorMode", "gui.config.comparator_mode",
+				new String[] { MOStringHelper.translateToLocal("gui.config.comparator_mode.power"),
+						MOStringHelper.translateToLocal("gui.config.comparator_mode.stability") },
+				0));
+	}
+
+	public int getComparatorMode() {
+		return getConfigs().getEnum("comparatorMode", 0);
 	}
 
 	@Override
 	public void update() {
 		super.update();
+		rescanTimer++;
 
 		if (world.isRemote) {
-			if (hit == null) {
+			if (rescanTimer >= 20) {
 				hit = seacrhForAnomalies(world);
+				rescanTimer = 0;
 			}
 			spawnParticles(world);
 		} else {
 			if (getRedstoneActive()) {
 				manageAnomalies(world);
 			}
+			UpdateClientPower();
 		}
 	}
 
@@ -90,21 +119,40 @@ public class TileEntityMachineGravitationalStabilizer extends MOTileEntityMachin
 	}
 
 	void manageAnomalies(World world) {
+		if (rescanTimer >= 20) {
+			rescanTimer = 0;
+			hit = seacrhForAnomalies(world);
+		}
 		if (hit != null) {
 			TileEntity te = world.getTileEntity(hit.getBlockPos());
 			if (te instanceof TileEntityGravitationalAnomaly) {
-				((TileEntityGravitationalAnomaly) te).suppress(new AnomalySuppressor(getPos(), 20, 0.7f));
-				return;
-			}
-			hit = null;
-		}
-		hit = seacrhForAnomalies(world);
-		if (hit != null) {
-			TileEntity te = world.getTileEntity(hit.getBlockPos());
-			if (te instanceof TileEntityGravitationalAnomaly) {
-				((TileEntityGravitationalAnomaly) te).suppress(new AnomalySuppressor(getPos(), 20, 0.7f));
+				suppressWithPower((TileEntityGravitationalAnomaly) te);
+			} else {
+				hit = null;
 			}
 		}
+	}
+
+	private void suppressWithPower(TileEntityGravitationalAnomaly anomaly) {
+		int drain = getDrainForCurrentStress();
+		int stored = energyStorage.getEnergyStored();
+		if (stored >= drain) {
+			energyStorage.modifyEnergyStored(-drain);
+			anomaly.suppress(new AnomalySuppressor(getPos(), 20, 0.7f));
+		} else if (stored > 0) {
+			// partial power: proportionally less suppression
+			float ratio = (float) stored / drain;
+			float amount = 0.7f + 0.3f * (1.0f - ratio);
+			energyStorage.modifyEnergyStored(-stored);
+			anomaly.suppress(new AnomalySuppressor(getPos(), 20, amount));
+		}
+		// no power → no suppress call → suppressor expires naturally
+	}
+
+	private int getDrainForCurrentStress() {
+		float stress = getPercentage();
+		if (stress < 0) return BASE_ENERGY_PER_TICK;
+		return BASE_ENERGY_PER_TICK + (int) ((MAX_ENERGY_PER_TICK - BASE_ENERGY_PER_TICK) * stress);
 	}
 
 	public float getPercentage() {
@@ -120,7 +168,8 @@ public class TileEntityMachineGravitationalStabilizer extends MOTileEntityMachin
 
 	@SideOnly(Side.CLIENT)
 	void spawnParticles(World world) {
-		if (hit != null && world.getTileEntity(hit.getBlockPos()) instanceof TileEntityGravitationalAnomaly) {
+		if (hit != null && energyStorage.getEnergyStored() > 0
+				&& world.getTileEntity(hit.getBlockPos()) instanceof TileEntityGravitationalAnomaly) {
 			if (random.nextFloat() < 0.3f) {
 
 				float r = (float) getParticleColorR();
@@ -223,7 +272,7 @@ public class TileEntityMachineGravitationalStabilizer extends MOTileEntityMachin
 
 	@Override
 	public boolean isAffectedByUpgrade(UpgradeTypes type) {
-		return false;
+		return type == UpgradeTypes.Muffler;
 	}
 
 	@Override

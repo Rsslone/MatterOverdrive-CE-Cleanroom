@@ -7,6 +7,7 @@ import matteroverdrive.blocks.BlockGravitationalAnomaly;
 import matteroverdrive.blocks.includes.MOBlock;
 import matteroverdrive.client.render.RenderParticlesHandler;
 import matteroverdrive.fx.GravitationalStabilizerBeamParticle;
+import matteroverdrive.machines.MachineNBTCategory;
 import matteroverdrive.machines.MOTileEntityMachine;
 import matteroverdrive.init.MatterOverdriveSounds;
 import matteroverdrive.machines.events.MachineEvent;
@@ -16,7 +17,9 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.SoundEvent;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -26,6 +29,7 @@ import org.lwjgl.util.vector.Vector3f;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
+import java.util.EnumSet;
 
 import static matteroverdrive.util.MOBlockHelper.getAboveSide;
 
@@ -34,6 +38,7 @@ public class TileEntityMachineGravitationalStabilizer extends MOTileEntityMachin
 	public static Color color2 = new Color(0xFF0000);
 	public static Color color3 = new Color(0x115A84);
 	RayTraceResult hit;
+	private EnumFacing cachedFront;
 
 	public TileEntityMachineGravitationalStabilizer() {
 		super(4);
@@ -45,7 +50,6 @@ public class TileEntityMachineGravitationalStabilizer extends MOTileEntityMachin
 
 		if (world.isRemote) {
 			spawnParticles(world);
-			hit = seacrhForAnomalies(world);
 		} else {
 			if (getRedstoneActive()) {
 				manageAnomalies(world);
@@ -55,11 +59,20 @@ public class TileEntityMachineGravitationalStabilizer extends MOTileEntityMachin
 
 	@Override
 	protected void onMachineEvent(MachineEvent event) {
+		if (event instanceof MachineEvent.NeighborChange) {
+			cachedFront = null;
+		}
+	}
 
+	private EnumFacing getFront() {
+		if (cachedFront == null) {
+			cachedFront = world.getBlockState(getPos()).getValue(MOBlock.PROPERTY_DIRECTION).getOpposite();
+		}
+		return cachedFront;
 	}
 
 	RayTraceResult seacrhForAnomalies(World world) {
-		EnumFacing front = world.getBlockState(getPos()).getValue(MOBlock.PROPERTY_DIRECTION).getOpposite();
+		EnumFacing front = getFront();
 		for (int i = 1; i < 64; i++) {
 			IBlockState blockState = world.getBlockState(getPos().offset(front, i));
 			if (blockState.getBlock() instanceof BlockGravitationalAnomaly || blockState.getMaterial().isOpaque()) {
@@ -74,10 +87,20 @@ public class TileEntityMachineGravitationalStabilizer extends MOTileEntityMachin
 	}
 
 	void manageAnomalies(World world) {
+		if (hit != null) {
+			TileEntity te = world.getTileEntity(hit.getBlockPos());
+			if (te instanceof TileEntityGravitationalAnomaly) {
+				((TileEntityGravitationalAnomaly) te).suppress(new AnomalySuppressor(getPos(), 20, 0.7f));
+				return;
+			}
+			hit = null;
+		}
 		hit = seacrhForAnomalies(world);
-		if (hit != null && world.getTileEntity(hit.getBlockPos()) instanceof TileEntityGravitationalAnomaly) {
-			((TileEntityGravitationalAnomaly) world.getTileEntity(hit.getBlockPos()))
-					.suppress(new AnomalySuppressor(getPos(), 20, 0.7f));
+		if (hit != null) {
+			TileEntity te = world.getTileEntity(hit.getBlockPos());
+			if (te instanceof TileEntityGravitationalAnomaly) {
+				((TileEntityGravitationalAnomaly) te).suppress(new AnomalySuppressor(getPos(), 20, 0.7f));
+			}
 		}
 	}
 
@@ -100,8 +123,7 @@ public class TileEntityMachineGravitationalStabilizer extends MOTileEntityMachin
 				float r = (float) getParticleColorR();
 				float g = (float) getParticleColorG();
 				float b = (float) getParticleColorB();
-				EnumFacing up = getAboveSide(world.getBlockState(getPos()).getValue(MOBlock.PROPERTY_DIRECTION))
-						.getOpposite();
+				EnumFacing up = getAboveSide(getFront().getOpposite()).getOpposite();
 				GravitationalStabilizerBeamParticle particle = new GravitationalStabilizerBeamParticle(world,
 						new Vector3f(getPos().getX() + 0.5f, getPos().getY() + 0.5f, getPos().getZ() + 0.5f),
 						new Vector3f(hit.getBlockPos().getX() + 0.5f, hit.getBlockPos().getY() + 0.5f,
@@ -204,5 +226,37 @@ public class TileEntityMachineGravitationalStabilizer extends MOTileEntityMachin
 	@Override
 	public int[] getSlotsForFace(EnumFacing side) {
 		return new int[0];
+	}
+
+	public void clearTarget() {
+		hit = null;
+	}
+
+	@Override
+	public void writeCustomNBT(NBTTagCompound nbt, EnumSet<MachineNBTCategory> categories, boolean toDisk) {
+		super.writeCustomNBT(nbt, categories, toDisk);
+		if (categories.contains(MachineNBTCategory.DATA)) {
+			nbt.setLong("targetPos", hit != null ? hit.getBlockPos().toLong() : Long.MIN_VALUE);
+		}
+	}
+
+	@Override
+	public void readCustomNBT(NBTTagCompound nbt, EnumSet<MachineNBTCategory> categories) {
+		super.readCustomNBT(nbt, categories);
+		if (categories.contains(MachineNBTCategory.DATA) && nbt.hasKey("targetPos")) {
+			long encoded = nbt.getLong("targetPos");
+			if (encoded != Long.MIN_VALUE && world != null) {
+				BlockPos targetPos = BlockPos.fromLong(encoded);
+				EnumFacing front = getFront();
+				hit = new RayTraceResult(
+						new Vec3d(targetPos).subtract(
+								Math.abs(front.getDirectionVec().getX() * 0.5),
+								Math.abs(front.getDirectionVec().getY() * 0.5),
+								Math.abs(front.getDirectionVec().getZ() * 0.5)),
+						front.getOpposite(), targetPos);
+			} else {
+				hit = null;
+			}
+		}
 	}
 }

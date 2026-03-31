@@ -49,6 +49,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.play.server.SPacketUpdateTileEntity;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -779,6 +780,12 @@ public class TileEntityGravitationalAnomaly extends MOTileEntity implements ISca
     //endregion
 
 	public void collapse() {
+		for (AnomalySuppressor s : supressors) {
+			TileEntity te = world.getTileEntity(s.getPos());
+			if (te instanceof TileEntityMachineGravitationalStabilizer) {
+				((TileEntityMachineGravitationalStabilizer) te).clearTarget();
+			}
+		}
 		world.setBlockToAir(getPos());
 		world.createExplosion(null, getPos().getX(), getPos().getY(), getPos().getZ(),
 				(float) getRealMassUnsuppressed(), true);

@@ -105,12 +105,33 @@ public class AndroidPlayer implements IEnergyStorage, IAndroid {
 	private NBTTagCompound unlocked;
 	private int maxEnergy;
 	private boolean isAndroid;
+	private boolean bionicSlotsDirty = true;
 	private boolean hasRunOutOfPower;
 	private final AndroidEffects androidEffects;
 
 	public AndroidPlayer(EntityPlayer player) {
 		this.maxEnergy = 512000;
-		inventory = new Inventory("Android");
+		inventory = new Inventory("Android") {
+			@Override
+			public void setInventorySlotContents(int slot, ItemStack item) {
+				super.setInventorySlotContents(slot, item);
+				bionicSlotsDirty = true;
+			}
+
+			@Override
+			@Nonnull
+			public ItemStack decrStackSize(int slotId, int size) {
+				bionicSlotsDirty = true;
+				return super.decrStackSize(slotId, size);
+			}
+
+			@Override
+			@Nonnull
+			public ItemStack removeStackFromSlot(int index) {
+				bionicSlotsDirty = true;
+				return super.removeStackFromSlot(index);
+			}
+		};
 		inventory.AddSlot(new BionicSlot(false, Reference.BIONIC_HEAD));
 		inventory.AddSlot(new BionicSlot(false, Reference.BIONIC_ARMS));
 		inventory.AddSlot(new BionicSlot(false, Reference.BIONIC_LEGS));
@@ -438,6 +459,7 @@ public class AndroidPlayer implements IEnergyStorage, IAndroid {
 		this.isAndroid = isAndroid;
 		sync(EnumSet.allOf(DataType.class));
 		if (isAndroid) {
+			bionicSlotsDirty = true;
 			previousBionicParts.clear();
 			manageStatAttributeModifiers();
 		} else {
@@ -592,6 +614,7 @@ public class AndroidPlayer implements IEnergyStorage, IAndroid {
 	}
 
 	private void manageEquipmentAttributeModifiers() {
+		if (!bionicSlotsDirty) return;
 		boolean needsSync = false;
 
 		for (int j = 0; j < 5; ++j) {
@@ -626,6 +649,7 @@ public class AndroidPlayer implements IEnergyStorage, IAndroid {
 		if (needsSync) {
 			sync(EnumSet.of(DataType.INVENTORY), true);
 		}
+		bionicSlotsDirty = false;
 	}
 
 	public void updateStatModifyers(IBioticStat stat) {

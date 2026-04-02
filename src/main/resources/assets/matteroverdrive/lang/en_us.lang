@@ -476,12 +476,16 @@ gui.weapon_station.name=Weapon Station
 gui.inscriber.name=Molecular Inscriber
 gui.contract_market.name=Contracts
 gui.dimensional_pylon.name=Dimension Reactor
+gui.gravitational_stabilizer.name=Gravitational Stabilizer
 
 ## Other ##
 gui.redstone_mode.high=High
 gui.redstone_mode.low=Low
 gui.redstone_mode.disabled=Disabled
 gui.config.redstone=Redstone
+gui.config.comparator_mode=Comparator Output
+gui.config.comparator_mode.power=Power
+gui.config.comparator_mode.stability=Stability
 gui.config.owner=Owner
 gui.config.mnet.address=Address
 

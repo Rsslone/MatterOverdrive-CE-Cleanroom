@@ -77,7 +77,7 @@ public class ComponentTaskProcessingReplicator extends
 						if (this.replicateTime >= time) {
 							this.replicateTime = 0;
 							boolean replicationSucceeded = this.replicateItem(replicatePattern.getPattern(), patternStack);
-							MatterOverdrive.NETWORK.sendToDimention(new PacketReplicationComplete(machine), getWorld());
+							MatterOverdrive.NETWORK.sendToDimention(new PacketReplicationComplete(machine, patternStack), getWorld());
 
 							TileEntity TE = getWorld().getTileEntity(getPos());
 
@@ -85,12 +85,20 @@ public class ComponentTaskProcessingReplicator extends
 							if (TE != null) {
 								TileEntityMachineReplicator temr = (TileEntityMachineReplicator) TE;
 
-								if (replicationSucceeded && temr.getUpgradeMultiply(UpgradeTypes.Muffler) != 2d) {
-									SoundHandler.PlaySoundAt(getWorld(), MatterOverdriveSounds.replicateSuccess,
-											SoundCategory.BLOCKS, this.getPos().getX(), this.getPos().getY(),
-											this.getPos().getZ(),
-											0.25F * machine.getBlockType(BlockReplicator.class).replication_volume,
-											1.0F, 0.2F, 0.8F);
+								if (temr.getUpgradeMultiply(UpgradeTypes.Muffler) != 2d) {
+									if (replicationSucceeded) {
+										SoundHandler.PlaySoundAt(getWorld(), MatterOverdriveSounds.replicateSuccess,
+												SoundCategory.BLOCKS, this.getPos().getX(), this.getPos().getY(),
+												this.getPos().getZ(),
+												0.25F * machine.getBlockType(BlockReplicator.class).replication_volume,
+												1.0F, 0.2F, 0.8F);
+									} else {
+										SoundHandler.PlaySoundAt(getWorld(), MatterOverdriveSounds.replicateFail,
+												SoundCategory.BLOCKS, this.getPos().getX(), this.getPos().getY(),
+												this.getPos().getZ(),
+												0.25F * machine.getBlockType(BlockReplicator.class).replication_volume,
+												1.0F, 0.2F, 0.8F);
+									}
 								}
 							}
 						}

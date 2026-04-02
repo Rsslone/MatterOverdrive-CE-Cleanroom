@@ -103,14 +103,37 @@ public class AndroidPlayer implements IEnergyStorage, IAndroid {
 	private EntityPlayer player;
 	private IBioticStat activeStat;
 	private NBTTagCompound unlocked;
+	private final Map<String, Integer> unlockedLevels = new HashMap<>();
 	private int maxEnergy;
 	private boolean isAndroid;
+	private long lastBatterySyncTick = -20L;
+	private boolean bionicSlotsDirty = true;
 	private boolean hasRunOutOfPower;
 	private final AndroidEffects androidEffects;
 
 	public AndroidPlayer(EntityPlayer player) {
 		this.maxEnergy = 512000;
-		inventory = new Inventory("Android");
+		inventory = new Inventory("Android") {
+			@Override
+			public void setInventorySlotContents(int slot, ItemStack item) {
+				super.setInventorySlotContents(slot, item);
+				bionicSlotsDirty = true;
+			}
+
+			@Override
+			@Nonnull
+			public ItemStack decrStackSize(int slotId, int size) {
+				bionicSlotsDirty = true;
+				return super.decrStackSize(slotId, size);
+			}
+
+			@Override
+			@Nonnull
+			public ItemStack removeStackFromSlot(int index) {
+				bionicSlotsDirty = true;
+				return super.removeStackFromSlot(index);
+			}
+		};
 		inventory.AddSlot(new BionicSlot(false, Reference.BIONIC_HEAD));
 		inventory.AddSlot(new BionicSlot(false, Reference.BIONIC_ARMS));
 		inventory.AddSlot(new BionicSlot(false, Reference.BIONIC_LEGS));
@@ -248,9 +271,11 @@ public class AndroidPlayer implements IEnergyStorage, IAndroid {
 		if (dataTypes.contains(DataType.STATS)) {
 			prop.setTag(NBT_STATS, unlocked);
 		}
-		NBTTagCompound effects = new NBTTagCompound();
-		getAndroidEffects().writeToNBT(effects);
-		prop.setTag("effects", effects);
+		if (dataTypes.contains(DataType.EFFECTS)) {
+			NBTTagCompound effects = new NBTTagCompound();
+			getAndroidEffects().writeToNBT(effects);
+			prop.setTag("effects", effects);
+		}
 
 		if (dataTypes.contains(DataType.ACTIVE_ABILITY)) {
 			if (activeStat != null) {
@@ -283,6 +308,7 @@ public class AndroidPlayer implements IEnergyStorage, IAndroid {
 			}
 			if (dataTypes.contains(DataType.STATS)) {
 				unlocked = prop.getCompoundTag(NBT_STATS);
+				rebuildUnlockedCache();
 			}
 			if (dataTypes.contains(DataType.EFFECTS)) {
 				NBTTagCompound effects = prop.getCompoundTag("effects");
@@ -352,15 +378,21 @@ public class AndroidPlayer implements IEnergyStorage, IAndroid {
 
 	@Override
 	public boolean isUnlocked(IBioticStat stat, int level) {
-		return unlocked.hasKey(stat.getUnlocalizedName()) && unlocked.getInteger(stat.getUnlocalizedName()) >= level;
+		// Use the HashMap cache for O(1) lookup instead of NBT string traversal.
+		// Sentinel -1 means absent: ensures level=0 checks don't falsely return true.
+		return unlockedLevels.getOrDefault(stat.getUnlocalizedName(), -1) >= level;
 	}
 
 	@Override
 	public int getUnlockedLevel(IBioticStat stat) {
-		if (unlocked.hasKey(stat.getUnlocalizedName())) {
-			return unlocked.getInteger(stat.getUnlocalizedName());
+		return unlockedLevels.getOrDefault(stat.getUnlocalizedName(), 0);
+	}
+
+	private void rebuildUnlockedCache() {
+		unlockedLevels.clear();
+		for (Object key : unlocked.getKeySet()) {
+			unlockedLevels.put(key.toString(), unlocked.getInteger(key.toString()));
 		}
-		return 0;
 	}
 
 	public boolean tryUnlock(IBioticStat stat, int level) {
@@ -375,6 +407,7 @@ public class AndroidPlayer implements IEnergyStorage, IAndroid {
 	public void unlock(IBioticStat stat, int level) {
 		clearAllStatAttributeModifiers();
 		this.unlocked.setInteger(stat.getUnlocalizedName(), level);
+		unlockedLevels.put(stat.getUnlocalizedName(), level);
 		stat.onUnlock(this, level);
 		sync(EnumSet.of(DataType.STATS));
 		manageStatAttributeModifiers();
@@ -410,7 +443,13 @@ public class AndroidPlayer implements IEnergyStorage, IAndroid {
 			ItemStack battery = getStackInSlot(ENERGY_SLOT);
 			IEnergyStorage energyContainerItem = battery.getCapability(CapabilityEnergy.ENERGY, null);
 			energyReceived = energyContainerItem.receiveEnergy(amount, simulate);
-			sync(EnumSet.of(DataType.BATTERY));
+			if (!simulate) {
+				long now = player.world.getTotalWorldTime();
+				if (now - lastBatterySyncTick >= 20L) {
+					lastBatterySyncTick = now;
+					sync(EnumSet.of(DataType.BATTERY));
+				}
+			}
 		} else {
 			int energy = this.player.getDataManager().get(ENERGY);
 			energyReceived = Math.min(Math.min(getMaxEnergyStored() - energy, amount), BUILTIN_ENERGY_TRANSFER);
@@ -438,6 +477,7 @@ public class AndroidPlayer implements IEnergyStorage, IAndroid {
 		this.isAndroid = isAndroid;
 		sync(EnumSet.allOf(DataType.class));
 		if (isAndroid) {
+			bionicSlotsDirty = true;
 			previousBionicParts.clear();
 			manageStatAttributeModifiers();
 		} else {
@@ -478,6 +518,7 @@ public class AndroidPlayer implements IEnergyStorage, IAndroid {
 	public int resetUnlocked() {
 		int xp = getResetXPRequired();
 		this.unlocked = new NBTTagCompound();
+		unlockedLevels.clear();
 		sync(EnumSet.of(DataType.STATS));
 		clearAllStatAttributeModifiers();
 		return xp;
@@ -498,6 +539,7 @@ public class AndroidPlayer implements IEnergyStorage, IAndroid {
 			int level = unlocked.getInteger(stat.getUnlocalizedName());
 			stat.onUnlearn(this, level);
 			unlocked.removeTag(stat.getUnlocalizedName());
+			unlockedLevels.remove(stat.getUnlocalizedName());
 			sync(EnumSet.of(DataType.STATS));
 			manageStatAttributeModifiers();
 		}
@@ -592,6 +634,7 @@ public class AndroidPlayer implements IEnergyStorage, IAndroid {
 	}
 
 	private void manageEquipmentAttributeModifiers() {
+		if (!bionicSlotsDirty) return;
 		boolean needsSync = false;
 
 		for (int j = 0; j < 5; ++j) {
@@ -626,6 +669,7 @@ public class AndroidPlayer implements IEnergyStorage, IAndroid {
 		if (needsSync) {
 			sync(EnumSet.of(DataType.INVENTORY), true);
 		}
+		bionicSlotsDirty = false;
 	}
 
 	public void updateStatModifyers(IBioticStat stat) {

@@ -14,6 +14,7 @@ import matteroverdrive.container.ContainerAndroidStation;
 import matteroverdrive.container.ContainerDimensionalPylon;
 import matteroverdrive.container.ContainerFactory;
 import matteroverdrive.container.ContainerFusionReactor;
+import matteroverdrive.container.ContainerGravitationalStabilizer;
 import matteroverdrive.container.ContainerInscriber;
 import matteroverdrive.container.ContainerReplicator;
 import matteroverdrive.container.ContainerSolarPanel;
@@ -28,6 +29,7 @@ import matteroverdrive.gui.GuiContractMarket;
 import matteroverdrive.gui.GuiDecomposer;
 import matteroverdrive.gui.GuiDimensionalPylon;
 import matteroverdrive.gui.GuiFusionReactor;
+import matteroverdrive.gui.GuiGravitationalStabilizer;
 import matteroverdrive.gui.GuiHoloSign;
 import matteroverdrive.gui.GuiInscriber;
 import matteroverdrive.gui.GuiMatterAnalyzer;
@@ -65,6 +67,7 @@ import matteroverdrive.tile.TileEntityMachineMatterRecycler;
 import matteroverdrive.tile.TileEntityMachineNetworkRouter;
 import matteroverdrive.tile.TileEntityMachineNetworkSwitch;
 import matteroverdrive.tile.TileEntityMachineSolarPanel;
+import matteroverdrive.tile.TileEntityMachineGravitationalStabilizer;
 import matteroverdrive.tile.TileEntityMachineSpacetimeAccelerator;
 import matteroverdrive.tile.TileEntityMachineStarMap;
 import matteroverdrive.tile.TileEntityMicrowave;
@@ -100,6 +103,7 @@ public class GuiHandler implements IGuiHandler {
 			registerContainer(TileEntityMachinePatternMonitor.class, ContainerPatternMonitor.class);
 			registerContainer(TileEntityMachineMatterAnalyzer.class, ContainerAnalyzer.class);
 			registerContainer(TileEntityMachineDimensionalPylon.class, ContainerDimensionalPylon.class);
+			registerContainer(TileEntityMachineGravitationalStabilizer.class, ContainerGravitationalStabilizer.class);
 		} else {
 			// Gui Registration
 			registerGuiAndContainer(TileEntityMachineReplicator.class, GuiReplicator.class, ContainerReplicator.class);
@@ -130,6 +134,8 @@ public class GuiHandler implements IGuiHandler {
 			registerGui(TileEntityMachineSpacetimeAccelerator.class, GuiSpacetimeAccelerator.class);
 			registerGuiAndContainer(TileEntityMachineDimensionalPylon.class, GuiDimensionalPylon.class,
 					ContainerDimensionalPylon.class);
+			registerGuiAndContainer(TileEntityMachineGravitationalStabilizer.class, GuiGravitationalStabilizer.class,
+					ContainerGravitationalStabilizer.class);
 			registerGui(TileEntityMicrowave.class, GuiMicrowave.class);
 		}
 	}

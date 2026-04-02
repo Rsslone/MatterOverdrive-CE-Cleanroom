@@ -4,7 +4,9 @@ package matteroverdrive.blocks;
 import javax.annotation.Nonnull;
 
 import matteroverdrive.blocks.includes.MOBlockMachine;
+import matteroverdrive.handler.ConfigurationHandler;
 import matteroverdrive.tile.TileEntityMachineGravitationalStabilizer;
+import matteroverdrive.util.IConfigSubscriber;
 import matteroverdrive.util.MOBlockHelper;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -12,7 +14,9 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-public class BlockGravitationalStabilizer extends MOBlockMachine<TileEntityMachineGravitationalStabilizer> {
+public class BlockGravitationalStabilizer extends MOBlockMachine<TileEntityMachineGravitationalStabilizer>
+		implements IConfigSubscriber {
+
 	public BlockGravitationalStabilizer(Material material, String name) {
 		super(material, name);
 		setHasRotation();
@@ -21,18 +25,29 @@ public class BlockGravitationalStabilizer extends MOBlockMachine<TileEntityMachi
 		this.setHarvestLevel("pickaxe", 2);
 		lightValue = 10;
 		setRotationType(MOBlockHelper.RotationType.SIX_WAY);
+		setHasGui(true);
 	}
 
-	/*
-	 * @SideOnly(Side.CLIENT) public IIcon getIcon(int side, int meta) { if (side ==
-	 * meta) { return MatterOverdriveIcons.Network_port_square; } else if (side ==
-	 * MOBlockHelper.getOppositeSide(meta)) { return
-	 * MatterOverdriveIcons.Monitor_back; } else if (side ==
-	 * MOBlockHelper.getLeftSide(meta) || side == MOBlockHelper.getRightSide(meta))
-	 * { return MatterOverdriveIcons.Vent2; }
-	 * 
-	 * return MatterOverdriveIcons.Coil; }
-	 */
+	@Override
+	public void onConfigChanged(ConfigurationHandler config) {
+		super.onConfigChanged(config);
+		String machine = getTranslationKey();
+		TileEntityMachineGravitationalStabilizer.ENERGY_CAPACITY = config.getMachineInt(
+				machine, ConfigurationHandler.KEY_GRAVITATIONAL_STABILIZER_ENERGY_CAPACITY, 100000,
+				"Maximum RF stored by the gravitational stabilizer.");
+		TileEntityMachineGravitationalStabilizer.MAX_ENERGY_RECEIVE = config.getMachineInt(
+				machine, ConfigurationHandler.KEY_GRAVITATIONAL_STABILIZER_MAX_ENERGY_RECEIVE, 2000,
+				"Maximum RF/t the gravitational stabilizer can accept.");
+		TileEntityMachineGravitationalStabilizer.BASE_ENERGY_PER_TICK = config.getMachineInt(
+				machine, ConfigurationHandler.KEY_GRAVITATIONAL_STABILIZER_BASE_ENERGY_PER_TICK, 20,
+				"RF/t consumed at minimum anomaly stress (stress = 0%).");
+		TileEntityMachineGravitationalStabilizer.MAX_ENERGY_PER_TICK = config.getMachineInt(
+				machine, ConfigurationHandler.KEY_GRAVITATIONAL_STABILIZER_MAX_ENERGY_PER_TICK, 200,
+				"RF/t consumed at maximum anomaly stress (stress = 100%).");
+		TileEntityMachineGravitationalStabilizer.RESCAN_RATE = config.getMachineInt(
+				machine, ConfigurationHandler.KEY_GRAVITATIONAL_STABILIZER_RESCAN_RATE, 40,
+				"How often (in ticks) the stabilizer re-scans the beam length for obstructions. Default 40 (~2s). Lower = more responsive, higher = cheaper.");
+	}
 
 	@Override
 	public Class<TileEntityMachineGravitationalStabilizer> getTileEntityClass() {
@@ -46,7 +61,19 @@ public class BlockGravitationalStabilizer extends MOBlockMachine<TileEntityMachi
 
 	@Override
 	public int getComparatorInputOverride(IBlockState blockState, World worldIn, BlockPos pos) {
-		return (int) getTileEntity(worldIn, pos).getPercentage() * 15;
+		TileEntityMachineGravitationalStabilizer te = getTileEntity(worldIn, pos);
+		if (te == null) return 0;
+		if (te.getComparatorMode() == 1) {
+			// Stability mode: getPercentage() is 0-1 stress; less stress = more stable
+			float stress = te.getPercentage();
+			if (stress < 0) return 0;
+			return Math.round((1.0f - stress) * 15);
+		} else {
+			// Power mode: energy fill 0-1
+			float fill = (float) te.getEnergyStorage().getEnergyStored()
+					/ (float) te.getEnergyStorage().getMaxEnergyStored();
+			return Math.round(fill * 15);
+		}
 	}
 
 	@Nonnull

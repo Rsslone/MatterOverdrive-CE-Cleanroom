@@ -74,7 +74,6 @@ public class BlockReplicator extends MOMatterEnergyStorageBlock<TileEntityMachin
 				"speed.replication", 120, "The replication speed in ticks per matter value");
 		TileEntityMachineReplicator.ALLOW_INFINITE_REPLICATION = config.getMachineBool(getTranslationKey(),
 				"allow_infinite_replication", true,
-				"Allow pattern monitor requests to use infinite replication mode (amount -1). "
-						+ "When disabled, infinite requests are ignored and finite requests still work.");
+				"Allow pattern monitor requests to use infinite replication mode (amount -1).");
 	}
 }

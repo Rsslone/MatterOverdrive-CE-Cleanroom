@@ -16,6 +16,7 @@ public class MatterOverdriveSounds {
 	public final static SoundEvent scannerFail = newEvent("scanner_fail");
 	public final static SoundEvent scannerScanning = newEvent("scanner_scanning");
 	public final static SoundEvent replicateSuccess = newEvent("replicate_success");
+	public final static SoundEvent replicateFail = newEvent("replicate_fail");
 	public final static SoundEvent analyzer = newEvent("analyzer");
 	public final static SoundEvent decomposer = newEvent("decomposer");
 	public final static SoundEvent machine = newEvent("machine");
@@ -66,6 +67,9 @@ public class MatterOverdriveSounds {
 	public final static SoundEvent fxElectricArc = newEvent("fx.electric_arc");
 	public final static SoundEvent blocksPylon = newEvent("blocks.pylon");
 	public final static SoundEvent weaponsExplosiveShot = newEvent("weapons.explosive_shot");
+	public final static SoundEvent alcoveChargeStart = newEvent("blocks.alcove.start");
+	public final static SoundEvent alcoveChargeLoop  = newEvent("blocks.alcove.loop");
+	public final static SoundEvent alcoveChargeStop  = newEvent("blocks.alcove.stop");
 
 	private static SoundEvent newEvent(String name) {
 		return new SoundEvent(new ResourceLocation(Reference.MOD_ID, name))

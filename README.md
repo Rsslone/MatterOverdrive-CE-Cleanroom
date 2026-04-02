@@ -2,12 +2,7 @@
 
 ![Discord](https://img.shields.io/discord/703124643149643818?logo=discord&link=https%3A%2F%2Fdiscord.gg%2FsgQxDJdrnY) 
 
-## Table of Contents
-* [About](#about)
-* [Improvements](#refit-differences)
-* [Mod-Links](#mod-links)
-* [Features](#features)
-* [Issues](#issues)
+# Matter Overdrive - Maintained by Refitbench
 
 ## About
 Matter Overdrive is a Minecraft mod inspired by the popular Sci-fi TV series Star Trek. It dwells in the concept of replicating and transforming one type matter into another.
@@ -27,6 +22,7 @@ Although it may seem overpowered, Matter Overdrive takes a more realistic approa
 * Replication requests can be infinite (-1), configurable by server host.
 * Bug fixes, fixed a fair amount of bugs and exploits.
 * New replication effects and sounds.
+* New Recharge Station effects and sounds.
 
 ## Mod-Links
 * [Discord](https://discord.gg/sgQxDJdrnY)

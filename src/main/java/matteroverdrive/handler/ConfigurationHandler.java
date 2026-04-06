@@ -3,9 +3,6 @@ package matteroverdrive.handler;
 import matteroverdrive.MatterOverdrive;
 import matteroverdrive.Reference;
 import matteroverdrive.entity.android_player.AndroidPlayer;
-import matteroverdrive.items.weapon.EnergyPack;
-import matteroverdrive.items.weapon.EnergyWeapon;
-import matteroverdrive.items.weapon.IonSniper;
 import matteroverdrive.util.IConfigSubscriber;
 import net.minecraftforge.common.config.ConfigCategory;
 import net.minecraftforge.common.config.ConfigElement;
@@ -125,6 +122,7 @@ public class ConfigurationHandler {
 	public boolean pylonEnabled;
 	public boolean showFilledItems;
 	public boolean showInDevItems;
+	public boolean legacyTritaniumCrateMigrationEnabled;
 
 	public ConfigurationHandler(File configDir) {
 		this.configDir = configDir;
@@ -195,6 +193,11 @@ public class ConfigurationHandler {
 				+ "are hidden from creative inventory and JEI. Empty variants still appear.");
 		showInDevItems = config.getBoolean("showInDevItems", CATEGORY_GENERAL, false,
 				"Shows items which are incomplete / have no function");
+
+		legacyTritaniumCrateMigrationEnabled = config.getBoolean("legacy_tritanium_crate_migration",
+				CATEGORY_GENERAL, true,
+				"Migrates old per-color tritanium crate blocks to the unified new_tritanium_crate block. "
+				+ "Disable only if you are certain your world never contained the old crate variants.");
 
 		config.get(CATEGORY_WORLD_GEN, CATEGORY_WORLD_SPAWN_ORES, true,
 				"Should ores such as dilithium and tritanium ore spawn in the world. This applies for all ores !")

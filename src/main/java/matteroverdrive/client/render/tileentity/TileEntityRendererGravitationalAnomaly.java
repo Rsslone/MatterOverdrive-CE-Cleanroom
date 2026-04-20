@@ -56,6 +56,7 @@ public class TileEntityRendererGravitationalAnomaly extends TileEntitySpecialRen
 		GlStateManager.scale(radius, radius, radius);
 		GlStateManager.color(0.0F, 0.0F, 0.0F, 1);
 		sphere_model.draw((float) 0.33, 8, 8);
+		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 		GlStateManager.popMatrix();
 
 		// Outer
@@ -70,6 +71,7 @@ public class TileEntityRendererGravitationalAnomaly extends TileEntitySpecialRen
 		GlStateManager.scale(radius + 0.5, radius + 0.5, radius + 0.5);
 		GlStateManager.color(0.0F, 0.0F, 0.2F, 0.8f);
 		sphere_model.draw((float) 0.33, 8, 8);
+		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 		GlStateManager.enableLighting();
 		GlStateManager.disableBlend();
 		GL11.glDepthMask(true);
@@ -118,6 +120,7 @@ public class TileEntityRendererGravitationalAnomaly extends TileEntitySpecialRen
 		Tessellator.getInstance().draw();
 
 		// Reset
+		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 		GlStateManager.enableLighting();
 		GlStateManager.disableBlend();
 		//GL11.glDepthMask(false);

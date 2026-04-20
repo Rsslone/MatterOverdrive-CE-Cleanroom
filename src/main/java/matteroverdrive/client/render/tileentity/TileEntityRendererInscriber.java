@@ -94,7 +94,6 @@ public class TileEntityRendererInscriber extends TileEntitySpecialRenderer<TileE
 			GlStateManager.popMatrix();
 		}
 
-		GlStateManager.color(0, 0, 1, 0.5f);
 		GlStateManager.pushMatrix();
 		GlStateManager.translate(x, y, z);
 		RenderUtils.rotateFromBlock(tileEntity.getWorld(), tileEntity.getPos());
